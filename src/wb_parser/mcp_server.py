@@ -123,6 +123,11 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
                 "target": {"type": "string", "description": "Product URL or numeric nm_id"},
                 "query": {"type": "string", "description": "Search keyword"},
                 "max_pages": {"type": "integer", "default": 3},
+                "sort": {
+                    "type": "string",
+                    "default": "popular",
+                    "description": "Sort order (popular, pricedown, priceup, rate, newly)",
+                },
             },
             "required": ["target", "query"],
         },
@@ -154,14 +159,14 @@ class WBMCPServer:
         proxy_change_url: Optional[str] = None,
         cookies: Optional[str] = None,
         wbaas_token: Optional[str] = None,
-        tracker_db: str = "wb_prices.db",
+        tracker_db: Optional[str] = None,
         client: Optional[WBClient] = None,
     ) -> None:
         self.proxy = proxy or os.environ.get("WB_PROXY")
         self.proxy_change_url = proxy_change_url or os.environ.get("WB_PROXY_CHANGE_URL")
         self.cookies = cookies or os.environ.get("WB_COOKIES")
         self.wbaas_token = wbaas_token or os.environ.get("WB_WBAAS_TOKEN")
-        self.tracker_db = tracker_db or os.environ.get("WB_TRACKER_DB", "wb_prices.db")
+        self.tracker_db = tracker_db or os.environ.get("WB_TRACKER_DB") or "wb_prices.db"
         self._client = client
 
     @property
@@ -315,6 +320,7 @@ class WBMCPServer:
                 args["target"],
                 str(args["query"]),
                 max_pages=int(args.get("max_pages", 3)),
+                sort=str(args.get("sort", "popular")),
             )
             return res.model_dump()
 
@@ -364,7 +370,7 @@ def main_mcp(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--proxy-change-url", default=None)
     parser.add_argument("--cookies", default=None)
     parser.add_argument("--wbaas-token", default=None)
-    parser.add_argument("--db", default="wb_prices.db")
+    parser.add_argument("--db", default=None)
     args = parser.parse_args(argv)
 
     srv = WBMCPServer(

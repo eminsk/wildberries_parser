@@ -15,7 +15,7 @@ Supports CPython 3.8-3.16, PyPy 3.8-3.12, and Free-Threaded No-GIL (3.13t-3.16t)
 
 from __future__ import annotations
 
-__version__ = "2.2.0"
+__version__ = "2.2.1"
 
 from wb_parser.client import AsyncWBClient, ParseWB, WBClient, filter_products
 from wb_parser.config import DEST_CODES, DEFAULT_DEST, WBConfig

@@ -60,13 +60,13 @@ def _build_client(args: argparse.Namespace) -> WBClient:
     )
 
 
-def _add_network_args(subparser: argparse.ArgumentParser) -> None:
+def _add_network_args(subparser: argparse.ArgumentParser, *, db_default: Optional[str] = "wb_prices.db") -> None:
     subparser.add_argument("--dest", default=str(DEFAULT_DEST), help="WB region destination ID or city name")
     subparser.add_argument("--proxy", default=None, help="Proxy URL (http://user:pass@ip:port or socks5://...)")
     subparser.add_argument("--proxy-change-url", default=None, help="Mobile proxy rotation URL")
     subparser.add_argument("--cookies", default=None, help="Optional browser Cookie header string")
     subparser.add_argument("--wbaas-token", default=None, help="Optional x-wbaas-token header")
-    subparser.add_argument("--db", default="wb_prices.db", help="SQLite price history path")
+    subparser.add_argument("--db", default=db_default, help="SQLite price history path")
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -150,7 +150,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     rank_p.add_argument("target", help="Product URL or numeric nm_id")
     rank_p.add_argument("query", help="Search keyword query")
     rank_p.add_argument("-p", "--pages", type=int, default=3, help="Max search pages to scan (100 items/page)")
-    rank_p.add_argument("--sort", default="popular", help="Sort order (popular, pricedown, priceup, rate)")
+    rank_p.add_argument("--sort", default="popular", help="Sort order (popular, pricedown, priceup, rate, newly)")
     rank_p.add_argument("-o", "--output", help="Save rank report (.xlsx or .json)")
     _add_network_args(rank_p)
 
@@ -167,10 +167,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # 10. mcp
     mcp_p = subparsers.add_parser("mcp", help="Start native JSON-RPC 2.0 MCP Server over stdio")
-    _add_network_args(mcp_p)
+    _add_network_args(mcp_p, db_default=None)
 
     # 11. gui
-    subparsers.add_parser("gui", help="Launch Dark-Themed WB SDK Pro Desktop GUI")
+    subparsers.add_parser("gui", help="Launch Dark-Themed 7-Tab WB SDK Pro Desktop GUI (requires [gui] extra)")
 
     args = parser.parse_args(argv)
     if not args.command:

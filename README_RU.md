@@ -16,15 +16,15 @@
 
 | Среда | Версии | Статус |
 |---|---|---|
-| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ Все 25 тестов (Win / Linux / macOS) |
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ Все 27 тестов (Win / Linux / macOS) |
 | **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Потокобезопасно (`RLock` + `wb_parser._model`) |
-| **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Все 25 тестов |
+| **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Все 27 тестов |
 
 Ядро SDK, CLI и MCP-сервера написано на чистом Python (`wb_parser._model` вместо `pydantic`) с каскадным HTTP-транспортом (`curl_cffi` с TLS Chrome 124 если установлен → `httpx[http2]` → `requests`), поэтому устанавливается и работает на **18 рантаймах Python** без Rust/C-зависимостей в ядре.
 
 ---
 
-## 🚀 Что объединено в одном проекте (`v2.2.0`)
+## 🚀 Что объединено в одном проекте (`v2.2.1`)
 
 1. **Ядро парсера, Async-клиент и CDN-роутер (`shards.py`, `client.py`, `http.py`):**
    - Исправлена маршрутизация отзывов **`feedbacks1` / `feedbacks2`** по точной формуле `root_id % 100 >= 50` (с резервным переключением на второй шард).
@@ -183,4 +183,4 @@ uv run wb-parser gui
 uv run pytest
 ```
 
-**25 тестов** подтверждены локально на 17 версиях Python и в GitHub Actions на **Linux, Windows и macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12): шардинг, модели, TOML/JSON-конфиг, sync/async клиенты, WB Кошелёк, ранжирование, отзывы, Excel/CSV, MCP, CLI, GUI и потокобезопасность без GIL.
+**27 тестов** подтверждены на всех версиях Python в GitHub Actions на **Linux, Windows и macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12): шардинг, модели, TOML/JSON-конфиг, sync/async клиенты, WB Кошелёк, ранжирование, отзывы, Excel/CSV, MCP (`WB_TRACKER_DB`, `sort`), CLI, GUI и потокобезопасность без GIL.

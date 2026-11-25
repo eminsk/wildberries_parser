@@ -43,8 +43,18 @@ def test_mcp_server_protocol_and_tools(tmp_path: Path):
     assert notif is None
 
     list_resp = srv.handle_request({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
-    names = {t["name"] for t in list_resp["result"]["tools"]}
-    assert {"wb_get_card", "wb_get_feedbacks", "wb_search", "wb_get_seller_catalog", "wb_price_drops"}.issubset(names)
+    tools_by_name = {t["name"]: t for t in list_resp["result"]["tools"]}
+    assert {
+        "wb_get_card",
+        "wb_get_feedbacks",
+        "wb_search",
+        "wb_get_seller_catalog",
+        "wb_price_drops",
+        "wb_wallet_price",
+        "wb_check_rank",
+        "wb_smart_reviews",
+    }.issubset(tools_by_name)
+    assert "sort" in tools_by_name["wb_check_rank"]["inputSchema"]["properties"]
 
     fb_resp = srv.handle_request({
         "jsonrpc": "2.0",
@@ -78,3 +88,10 @@ def test_cli_drops_and_help(tmp_path: Path, capsys):
     assert rc == 0
     captured = capsys.readouterr().out
     assert "9,500" in captured and "-2,500" in captured
+
+
+def test_mcp_server_honors_env_tracker_db(tmp_path: Path, monkeypatch):
+    env_db = tmp_path / "env_wb.db"
+    monkeypatch.setenv("WB_TRACKER_DB", str(env_db))
+    srv = WBMCPServer()
+    assert srv.tracker_db == str(env_db)

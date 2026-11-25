@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wb-sdk-pro"
-version = "2.2.0"
-description = "All-in-One Wildberries SDK, 7-Tab Desktop GUI, CLI & MCP Server: CDN card extraction, feedbacks1/2 sharding, WB Wallet pricing, Search Rank Tracker, Smart Review Analyzer, and Excel export"
+version = "2.2.1"
+description = "All-in-One Wildberries Sync/Async SDK, 11-command CLI, 8-tool MCP Server & optional Desktop GUI ([gui]): CDN card extraction, feedbacks1/2 sharding, WB Wallet & WB Club pricing, Search Rank Tracker, Smart Review Analyzer, and Excel/CSV/JSON export"
 readme = "README.md"
 authors = [
     { name = "eminsk", email = "M_N_Nik@yahoo.com" },

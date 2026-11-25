@@ -9,10 +9,10 @@
 </p>
 
 [![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
-[![Release](https://img.shields.io/badge/release-v2.2.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.2.0)
+[![Release](https://img.shields.io/badge/release-v2.2.1-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.2.1)
 [![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-25%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Tests](https://img.shields.io/badge/pytest-27%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
 [![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-7%20Tabs%20%7C%20CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
 [![MCP Server](https://img.shields.io/badge/MCP-8%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
@@ -25,7 +25,7 @@
 
 | Runtime | Versions | Status |
 |---|---|---|
-| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 25 tests pass (Win / Linux / macOS) |
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 27 tests pass (Win / Linux / macOS) |
 | **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Thread-safe (`RLock` + `wb_parser._model`) |
 | **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Pure-Python core passes without C/Rust deps |
 
@@ -289,7 +289,7 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**25 tests passing** locally across 17 Python runtimes and verified in GitHub Actions across **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel/CSV exports, MCP tools, CLI, GUI config persistence, and No-GIL thread safety.
+**27 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel/CSV exports, MCP tools & `WB_TRACKER_DB` env config, CLI, GUI config/missing-extra handling, and No-GIL thread safety.
 
 ## 📄 License
 

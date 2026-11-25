@@ -1,3 +1,11 @@
+python-wb-sdk-pro (2.2.1-1) unstable; urgency=medium
+
+  * Fix WBMCPServer/wb-parser mcp ignoring WB_TRACKER_DB environment variable.
+  * Add sort option to wb_check_rank MCP tool and clarify [gui] optional extra.
+  * Align PyPI, CLI, and package metadata descriptions with full SDK functionality.
+
+ -- eminsk <M_N_Nik@yahoo.com>  Wed, 25 Nov 2026 22:40:00 +0000
+
 python-wb-sdk-pro (2.2.0-1) unstable; urgency=medium
 
   * Release v2.2.0: Full compatibility with Python 3.8-3.16, PyPy 3.8-3.12,

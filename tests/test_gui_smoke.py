@@ -27,3 +27,13 @@ def test_gui_config_persistence(tmp_path: Path, monkeypatch):
 def test_gui_module_imports():
     import wb_parser.gui as gui_pkg
     assert callable(gui_pkg.main_gui)
+
+
+def test_gui_missing_customtkinter_returns_nonzero(monkeypatch, capsys):
+    import wb_parser.gui as gui_pkg
+    import wb_parser.gui.app as gui_app
+
+    monkeypatch.setattr(gui_app, "ctk", None)
+    rc = gui_pkg.main_gui()
+    assert rc == 1
+    assert "wb-sdk-pro[gui]" in capsys.readouterr().err
