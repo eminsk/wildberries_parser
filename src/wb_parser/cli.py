@@ -78,7 +78,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(
         prog="wb-parser",
-        description=f"Wildberries Parser SDK v{__version__} — CDN Card Inspector, Feedback Sharder, Search & GUI",
+        description=(
+            f"WB SDK Pro v{__version__} — CDN Card Inspector, Feedbacks1/2 Sharder, "
+            "WB Wallet Calculator, Rank Tracker, Smart Reviews, Search, MCP & GUI"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             f"Telegram Support: {TELEGRAM_CHANNEL_URL}\n"

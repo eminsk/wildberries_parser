@@ -20,8 +20,10 @@ Depends: ${misc:Depends},
          python3-requests
 Recommends: python3-httpx,
             python3-tk
-Description: All-in-One Wildberries SDK, CLI, Desktop GUI & MCP Server
- Modular Python SDK combining direct wbbasket.ru CDN card extraction,
+Description: All-in-One Wildberries SDK, CLI & MCP Server
+ Pure-Python SDK combining direct wbbasket.ru CDN card extraction,
  dynamic basket-01..65+ upstreams routing, feedbacks1/2 sharding, WB Wallet
  pricing engine, Search Rank Tracker, Smart Review Analyzer (offline & LLM),
- Excel export, and Native MCP Server (wb-mcp / wb-parser / wb-sdk / wb-gui).
+ SQLite price tracking, Telegram alerts, Excel/CSV/JSON export, 11-command CLI
+ (wb-parser / wb-sdk), and 8-tool MCP Server (wb-mcp). Desktop GUI (wb-gui)
+ requires optional customtkinter/Pillow via pip/uv extra [gui].

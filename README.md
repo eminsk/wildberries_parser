@@ -1,6 +1,6 @@
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
-  <b>All-in-One Wildberries Suite: Catalog Parser + WB Wallet Pricing + Search Rank Tracker + Smart Review Analyzer + Desktop GUI &amp; MCP Server</b>
+  <b>All-in-One Wildberries Suite: Sync/Async SDK + CDN Engine + WB Wallet Pricing + Search Rank Tracker + Smart Review Analyzer + 11-Command CLI + 8-Tool MCP Server + 7-Tab Desktop GUI</b>
 </p>
 
 <p align="center">
@@ -12,12 +12,12 @@
 [![Release](https://img.shields.io/badge/release-v2.2.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.2.0)
 [![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-25%20passed%20%C3%97%2017%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Tests](https://img.shields.io/badge/pytest-25%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
 [![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-7%20Tabs%20%7C%20CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
 [![MCP Server](https://img.shields.io/badge/MCP-8%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
-> **Unified 3-in-1 Wildberries Architecture** upgrading and merging `wildberries_parser` + `wb_rank` + `wb_smart_review` into one modular, type-safe SDK, Desktop App, CLI, and MCP Server.
+> **Unified 3-in-1 Wildberries Architecture** upgrading and merging `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` into one pure-Python, thread-safe Sync/Async SDK, 11-command CLI (`wb-parser` / `wb-sdk`), 8-tool MCP Server (`wb-mcp`), and optional 7-tab Desktop GUI (`wb-gui`).
 
 ---
 
@@ -25,11 +25,11 @@
 
 | Runtime | Versions | Status |
 |---|---|---|
-| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 25 tests pass |
-| **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Thread-safe, all pass |
-| **PyPy** | 3.9, 3.10, 3.11, 3.12 | ✅ All 25 tests pass |
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 25 tests pass (Win / Linux / macOS) |
+| **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Thread-safe (`RLock` + `wb_parser._model`) |
+| **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Pure-Python core passes without C/Rust deps |
 
-**17 runtimes tested** with zero Rust/C extensions in the core. Pure-Python `BaseModel` replaces `pydantic` for maximum portability.
+Core SDK, CLI, and MCP Server install cleanly across **18 Python runtimes** using pure-Python `wb_parser._model` and automatic HTTP transport selection (`curl_cffi` Chrome 124 TLS if installed → `httpx[http2]` → `requests`).
 
 ---
 
@@ -37,12 +37,17 @@
 
 | Module | What It Solves | Highlights |
 |---|---|---|
-| **Catalog & CDN Engine** (`wb_parser.shards`, `client`) | Broken `basket-15` caps, 404 `.jpg` links & Issue #2 (`feedbacks1/2`) | Dynamic live sync (`basket-01..65+`, articles up to `2.88B+`), real `.webp` URLs, `root_id % 100 >= 50` feedback routing, direct `card.json` without WBAAS blocks |
-| **WB Wallet Pricing** (`wb_parser.wallet`) | Calculating real buyer checkout price with `WB Кошелёк` / `ВБ Клуб` | Fetches live `default-payment.json` + `settings-front.json` thresholds (`wlt1DiscountDisplayMaxPrice`), floors prices via `ROUND_FLOOR` |
-| **Search Rank Tracker** (`wb_parser.rank`) | Monitoring keyword positions across WB search (`wb_rank`) | Scans pages `1..N` (Top 100–500+), saves SQLite history, calculates position deltas (`▲ +5` / `▼ -3`), exports styled Excel `.xlsx` |
-| **Smart Review Analyzer** (`wb_parser.reviews`) | Extracting buyer pros, cons & size fit (`wb_smart_review`) | Filters reviews by exact `nm_id` color or whole `root_id`, runs **instant Zero-API offline pros/cons/size analysis** OR optional OpenAI-compatible LLM summary |
-| **Desktop GUI (`wb-gui`)** | Visual control center without touching terminal | Dark `CustomTkinter` UI with 7 tabs (Parser, Catalog Feed, Rank Tracker, Smart Reviews, Proxy & Session, Telegram, Logs) |
-| **Native MCP Server (`wb-mcp`)** | Giving AI agents live Wildberries market intelligence | 8 JSON-RPC 2.0 tools for Claude Desktop, Cursor, Windsurf, and Antigravity |
+| **Catalog & CDN Engine** (`wb_parser.shards`, `client`) | Broken `basket-15` caps, 404 `.jpg` links & Issue #2 (`feedbacks1/2`) | Live sync (`basket-01..65+` & math extrapolation beyond vol `28,805`), real `.webp` URLs, `root_id % 100 >= 50` feedback routing with alternate-shard fallback, direct `card.json` & `price-history.json` without WBAAS blocks |
+| **Sync & Async Clients** (`WBClient`, `AsyncWBClient`, `ParseWB`) | Concurrent batch scraping, search & legacy code compatibility | `WBClient` (mixed targets via `scrape_targets`), `AsyncWBClient` (`gather_cards` with semaphore concurrency), and Duff89-compatible `ParseWB` / `Item` / `Items` / `Feedback` aliases |
+| **Resilient Transport** (`wb_parser.http`) | IPv6 CDN stalls, rate limits & mobile proxy failover | `curl_cffi` Chrome TLS (`[tls]`) → `httpx[http2]` → `requests` fallback, forced IPv4, exponential backoff with jitter, HTTP/SOCKS5 proxy, MobileProxy IP rotation (`proxy_change_url`) |
+| **WB Wallet Pricing** (`wb_parser.wallet`) | Calculating real buyer checkout price with `WB Кошелёк` / `ВБ Клуб` | Fetches live `default-payment.json` + `settings-front.json` thresholds (`wlt1DiscountDisplayMaxPrice`, `pricesDeltaToShowSale`) with `geobasket` mirror, floors prices via `ROUND_FLOOR` |
+| **Search Rank Tracker** (`wb_parser.rank`) | Monitoring keyword positions across WB search (`wb_rank`) | Scans pages `1..N` (`popular`, `pricedown`, `priceup`, `rate`, `newly`), computes global rank + page slot + SQLite `rank_delta` (`▲`/`▼`), batch checks (`check_batch`), styled Excel export |
+| **Smart Review Analyzer** (`wb_parser.reviews`) | Extracting buyer pros, cons, tags & size fit (`wb_smart_review`) | Filters by exact `nm_id` color (auto-falling back to `root_id` if empty), clusters pros/cons, builds 1★–5★ distribution & `matchingSize` stats offline, or enriches via OpenAI / DeepSeek / ProxyAPI / Ollama |
+| **Price Tracker, Config & Alerts** (`tracker`, `config`, `export`, `telegram`) | Price drops, multi-format reports & Telegram monitoring | Thread-safe SQLite `wb_latest_prices` / `wb_price_history`, `.xlsx` (hyperlinks & drop highlight), UTF-8 BOM `.csv`, `.json`, `.jsonl`, `pandas.DataFrame` (`[dataframe]`), `.json`/`.toml` `WBConfig`, isolated Telegram proxy |
+| **Desktop GUI (`wb-gui`)** | Visual control center (`[gui]` extra) | Dark `CustomTkinter` UI with 7 tabs (Parser, Catalog Feed, Rank Tracker, Smart Reviews, Proxy & Session, Telegram, Logs) and `storage/gui_config.json` persistence |
+| **Native MCP Server (`wb-mcp`)** | Giving AI agents live Wildberries market intelligence | 8 JSON-RPC 2.0 tools (`2025-11-25` / `2025-06-18` / `2024-11-05`) with `structuredContent` and env config (`WB_PROXY`, `WB_COOKIES`, `WB_WBAAS_TOKEN`, `WB_TRACKER_DB`) |
+
+> **Note on WB anti-bot (WBAAS 498/403):** Direct CDN endpoints (`wbbasket.ru` `card.json`, `upstreams`, `.webp`, `price-history.json`, `feedbacks1/2.wb.ru`, and Wallet configs) work directly without proxies or cookies. Gateway search, seller catalogs, and live `__internal/u-card` checkout prices may require an RU residential/mobile proxy, `cookies`, or `x-wbaas-token`.
 
 ---
 
@@ -51,11 +56,11 @@
 ### PyPI (`uv` / `pip`)
 
 ```bash
-# Using uv (recommended)
+# Core SDK, 11-command CLI (wb-parser / wb-sdk), and 8-tool MCP server (wb-mcp)
 uv add wb-sdk-pro
 
-# Or run GUI / CLI ephemerally via uvx
-uvx --from wb-sdk-pro wb-gui
+# Run Desktop GUI directly without installing into your project (requires [gui] extra)
+uvx --from "wb-sdk-pro[gui]" wb-gui
 
 # Or via pip
 pip install wb-sdk-pro
@@ -64,17 +69,22 @@ pip install wb-sdk-pro
 ### Optional Extras
 
 ```bash
-# Desktop GUI (adds customtkinter, Pillow, curl_cffi)
+# 7-Tab Desktop GUI (adds customtkinter, Pillow, curl_cffi)
 uv add "wb-sdk-pro[gui]"
 
-# Chrome TLS engine (adds curl_cffi)
+# Chrome TLS fingerprinting for HTTP/async requests (adds curl_cffi)
 uv add "wb-sdk-pro[tls]"
 
-# Everything
+# pandas DataFrame export via to_dataframe() (adds pandas)
+uv add "wb-sdk-pro[dataframe]"   # or "wb-sdk-pro[pandas]"
+
+# Everything (GUI + Chrome TLS + pandas)
 uv add "wb-sdk-pro[all]"
 ```
 
-### Debian / Ubuntu (APT)
+### Debian / Ubuntu (APT PPA)
+
+Installs the core pure-Python SDK, CLI (`wb-parser` / `wb-sdk`), and MCP server (`wb-mcp`):
 
 ```bash
 # 1-line setup (adds eminsk PPA + GPG key)
@@ -89,120 +99,185 @@ sudo apt install python3-wb-sdk-pro
 ```bash
 git clone https://github.com/eminsk/wildberries_parser.git
 cd wildberries_parser
-uv sync
+uv sync              # core SDK + CLI + MCP
+uv sync --extra gui  # include Desktop GUI + Chrome TLS
 ```
 
 ---
 
 ## ⚡ Quick Start — Python Library
 
-### 1. Card Inspection, Sharded Feedbacks & Excel Export
+### 1. Card Inspection, Sharded Feedbacks & Multi-Format Export
 
 ```python
-from wb_parser import WBClient, to_excel
+from wb_parser import DEST_CODES, WBClient, to_csv, to_excel, to_json
 
-with WBClient(tracker_db="wb_prices.db") as wb:
+with WBClient(dest=DEST_CODES["Москва"], tracker_db="wb_prices.db") as wb:
     wb.sync_upstreams()
-    item = wb.get_product("https://www.wildberries.ru/catalog/141217830/detail.aspx")
+    item = wb.get_product(
+        "https://www.wildberries.ru/catalog/141217830/detail.aspx",
+        with_price_history=True,
+    )
     print(item.name, item.brand, f"Reviews: {item.feedback_count} (★ {item.valuation})")
     to_excel([item], "result/wb_catalog.xlsx")
+    to_csv([item], "result/wb_catalog.csv")
+    to_json([item], "result/wb_catalog.json")
 ```
 
-### 2. WB Wallet Discount Price (`wb_parser.wallet`)
+### 2. Async Batch Fetching (`AsyncWBClient`)
+
+```python
+import asyncio
+from wb_parser import AsyncWBClient
+
+async def main():
+    async with AsyncWBClient(concurrency=16, tracker_db="wb_prices.db") as wb:
+        products = await wb.gather_cards([141217830, 181851928])
+        for p in products:
+            print(p.id, p.name, p.feedback_count)
+
+asyncio.run(main())
+```
+
+### 3. WB Wallet Discount Price (`wb_parser.wallet`)
 
 ```python
 from wb_parser import WBClient
 
 with WBClient() as wb:
     res = wb.wallet_price(4990)
-    print(f"Base: {res.base_price} ₽ -> With WB Wallet (-{res.discount_pct}%): {res.wallet_price} ₽")
+    club = wb.wallet_price(4990, use_club=True)
+    print(f"Base: {res.base_price} ₽ -> WB Wallet (-{res.discount_pct}%): {res.wallet_price} ₽")
+    print(f"WB Club (-{club.discount_pct}%): {club.wallet_price} ₽")
 ```
 
-### 3. Search Rank Tracking (`wb_parser.rank`)
+### 4. Search Rank Tracking (`wb_parser.rank`)
 
 ```python
 from wb_parser import WBClient, rank_results_to_excel
 
 with WBClient(cookies="x_wbaas_token=...", proxy="http://user:pass@ip:port") as wb:
-    rank = wb.check_rank(141217830, "кроссовки sb dunk", max_pages=3)
-    print(f"Position: #{rank.position} (Page {rank.page}, Delta: {rank.rank_delta})")
+    rank = wb.check_rank(141217830, "кроссовки sb dunk", max_pages=3, sort="popular")
+    print(f"Position: #{rank.position} (Page {rank.page}, Slot #{rank.page_position}, Delta: {rank.rank_delta})")
     rank_results_to_excel([rank], "result/ranks.xlsx")
 ```
 
-### 4. Smart Review Summary (`wb_parser.reviews`)
+### 5. Smart Review Summary (`wb_parser.reviews`)
 
 ```python
 from wb_parser import WBClient
 
 with WBClient() as wb:
     summary = wb.analyze_reviews(141217830, only_this_color=True, limit=100)
+    print("Ratings:", summary.rating_distribution)
     print("Size fit:", summary.size_fit)
+    print("Tags:", summary.bables_tags)
     print("Pros:", summary.top_pros)
     print("Cons:", summary.top_cons)
 
-    # Optional OpenAI / DeepSeek / ProxyAPI summarization:
+    # Optional OpenAI / DeepSeek / ProxyAPI / Ollama summarization:
     # summary = wb.analyze_reviews(141217830, ai_key="sk-...", ai_base_url="https://api.openai.com/v1")
 ```
 
+### 6. Config Files (`JSON` / `TOML`), Telegram Alerts & Legacy `ParseWB`
+
+```python
+from wb_parser import ParseWB, TelegramNotifier, WBConfig, WBClient
+
+cfg = WBConfig.from_file("wb.toml")  # or wb.json
+notifier = TelegramNotifier(bot_token="...", chat_id="...", proxy="socks5://127.0.0.1:1080")
+with WBClient(dest=cfg.dest, tracker_db=cfg.tracker_db) as wb:
+    item = wb.get_product(141217830)
+    notifier.send_product(item)
+
+# Backward-compatible Duff89 API:
+ParseWB("https://www.wildberries.ru/seller/626520", output_path="seller.xlsx").parse()
+```
+
 ---
 
+<a id="desktop-gui"></a>
 ## 🖥️ Desktop GUI (`WB SDK Pro` — 7 Tabs)
+
+Install with `[gui]` extra (`uv add "wb-sdk-pro[gui]"` or `uv sync --extra gui`), then launch:
 
 ```bash
 uv run wb-gui
-# or
+# or from cloned repo:
 uv run python run_gui.py
 ```
 
-1. **🔍 Парсер**: Scrape product links, `nm_id` articles, `/seller/...` stores, or search queries with price/discount/rating/keyword filters and 24/7 monitoring.
+1. **🔍 Парсер**: Scrape product links, `nm_id` articles, `/seller/...` stores, or search queries with price/discount/rating/whitelist/blacklist keyword filters and 24/7 loop monitoring.
 2. **📦 Каталог товаров**: Live cards displaying price, `💳 WB Wallet` price, discount badge, price drop alert (`📉`), clickable *"Открыть на WB ↗"*, and 1-click export to **Excel `.xlsx`**, **CSV**, and **JSON**.
-3. **📈 Позиции (Rank)**: Paste `nm_id : keyword` pairs, scan Top 100–500+, see position movement (`▲`/`▼`), and export rank reports to Excel.
+3. **📈 Позиции (Rank)**: Paste `nm_id : keyword` pairs, choose sort order (`popular`, `pricedown`, `priceup`, `rate`, `newly`), scan pages `1..N`, see position movement (`▲`/`▼`), and export rank reports to Excel.
 4. **💬 Умные отзывы**: Enter any WB URL or `nm_id` to extract buyer reviews, rating histogram, size fit stats, and side-by-side **✅ Pros** & **❌ Cons** (instant offline mode OR optional LLM API).
-5. **🌐 Прокси и Сессия**: Choose delivery region (`dest`), configure HTTP/SOCKS5 proxy, rotation URL, `x_wbaas_token` cookie, and ping CDN + live WB Wallet discount rates in 1 click.
+5. **🌐 Прокси и Сессия**: Choose delivery region (`dest`), configure HTTP/SOCKS5 proxy, MobileProxy rotation URL, cookies/`x_wbaas_token`, and ping CDN + live WB Wallet discount rates in 1 click.
 6. **✈️ Telegram**: Forward product cards & alerts via a decoupled Telegram proxy.
-7. **📋 Журнал**: Live execution log.
+7. **📋 Журнал**: Live execution log (all settings persist in `storage/gui_config.json`).
 
 ---
 
-## 💻 CLI Commands (`wb-parser`)
+## 💻 CLI Commands (`wb-parser` / `wb-sdk` — 11 Subcommands)
+
+All data commands support `--dest`, `--proxy`, `--proxy-change-url`, `--cookies`, `--wbaas-token`, and `--db`:
 
 ```bash
-# 1. Sync live CDN shards (01..65+) and check WB Wallet discount %
+# 1. Sync live CDN shards (01..65+) and check WB Wallet / WB Club discount %
 uv run wb-parser upstreams
 
-# 2. Fetch product card (CDN card.json + feedbacks1/2 + .webp links) & save Excel
-uv run wb-parser card https://www.wildberries.ru/catalog/141217830/detail.aspx -o item.xlsx
+# 2. Fetch product card (CDN card.json + feedbacks1/2 + .webp + optional --history) & save Excel
+uv run wb-parser card https://www.wildberries.ru/catalog/141217830/detail.aspx --history -o item.xlsx
 
-# 3. Calculate exact live WB Wallet discounted price
-uv run wb-parser wallet 4990
+# 3. Search catalog with price/discount/rating filters and optional CDN enrichment
+uv run wb-parser search "кроссовки" --pages 2 --min-discount 20 -o search.xlsx
 
-# 4. Run Smart Review Analyzer (works directly without proxy or AI key!)
-uv run wb-parser reviews 141217830 --limit 60
+# 4. Scrape all products for a seller URL, supplier ID, or sample product URL
+uv run wb-parser seller 626520 --pages 5 --enrich -o seller.xlsx
 
-# 5. Track product search rank across pages
+# 5. Calculate exact live WB Wallet (or --club) discounted price
+uv run wb-parser wallet 4990 --club
+
+# 6. Run Smart Review Analyzer (offline or --ai-key / --ai-url / --ai-model)
+uv run wb-parser reviews 141217830 --limit 60 -o reviews.json
+
+# 7. Track product search rank across pages (--sort popular|pricedown|priceup|rate)
 uv run wb-parser rank 141217830 "кроссовки dunk" --pages 3 -o ranks.xlsx
 
-# 6. Check sharded feedbacks directly
+# 8. Check sharded feedbacks directly (--is-nm resolves nm_id -> root_id via CDN first)
 uv run wb-parser feedbacks 181851928
 
-# 7. View SQLite price drops
+# 9. View SQLite price drops
 uv run wb-parser drops --db wb_prices.db
+
+# 10. Start MCP JSON-RPC 2.0 server over stdio
+uv run wb-parser mcp
+
+# 11. Launch CustomTkinter Desktop GUI (requires [gui] extra)
+uv run wb-parser gui
 ```
 
 ---
 
+<a id="mcp-server-for-ai-agents"></a>
 ## 🤖 Native MCP Server (`wb-mcp` — 8 Tools)
+
+Supports MCP protocol versions `2025-11-25`, `2025-06-18`, and `2024-11-05` (`serverInfo.name = "wb-parser-mcp"`), returning structured JSON alongside readable text:
 
 ```json
 {
   "mcpServers": {
     "wildberries": {
       "command": "uvx",
-      "args": ["--from", "wb-sdk-pro", "wb-mcp"]
+      "args": ["--from", "wb-sdk-pro", "wb-mcp"],
+      "env": {
+        "WB_TRACKER_DB": "wb_prices.db"
+      }
     }
   }
 }
 ```
+
+Optional environment variables: `WB_PROXY`, `WB_PROXY_CHANGE_URL`, `WB_COOKIES`, `WB_WBAAS_TOKEN`, `WB_TRACKER_DB`.
 
 Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_catalog`, `wb_price_drops`, `wb_wallet_price`, `wb_check_rank`, `wb_smart_reviews`.
 
@@ -214,7 +289,7 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**25 tests passing × 17 Python runtimes** (CPython 3.8–3.16, PyPy 3.9–3.12, Free-Threaded 3.13t–3.16t) covering shard math, models, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel exports, MCP tools, CLI, GUI config persistence, and thread safety.
+**25 tests passing** locally across 17 Python runtimes and verified in GitHub Actions across **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel/CSV exports, MCP tools, CLI, GUI config persistence, and No-GIL thread safety.
 
 ## 📄 License
 

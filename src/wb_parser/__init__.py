@@ -1,9 +1,16 @@
 """
-Wildberries Parser SDK & Desktop GUI (`wb_parser`).
+Wildberries SDK Pro (`wb_parser` / `wb-sdk-pro`).
 
-Modular Python SDK + CLI + Native MCP Server + CustomTkinter Desktop GUI
-for Wildberries card inspection, dynamic basket-01..65+ routing, sharded
-feedback collection (`feedbacks1` / `feedbacks2`), price tracking, and Excel export.
+Modular Python SDK, Async Client, CLI (`wb-parser` / `wb-sdk`), Native MCP Server (`wb-mcp`),
+and optional 7-Tab CustomTkinter Desktop GUI (`wb-gui`) for:
+- Direct `wbbasket.ru` CDN card extraction (`card.json`, `.webp` images, `basket-01..65+` upstreams)
+- Sharded review extraction & analytics (`feedbacks1`/`feedbacks2` via `root_id % 100 >= 50`)
+- Live WB Wallet & WB Club discount calculation (`WB Кошелёк` / `ВБ Клуб`)
+- Multi-page Search Rank Tracking with SQLite history deltas
+- Smart Review Analyzer (offline pros/cons/size-fit + optional OpenAI-compatible LLM)
+- SQLite price-drop tracking, Telegram notifications, and Excel/CSV/JSON/JSONL/DataFrame exports
+
+Supports CPython 3.8-3.16, PyPy 3.8-3.12, and Free-Threaded No-GIL (3.13t-3.16t).
 """
 
 from __future__ import annotations

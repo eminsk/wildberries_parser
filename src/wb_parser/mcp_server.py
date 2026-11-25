@@ -1,7 +1,8 @@
 """
-Native Model Context Protocol (MCP) Server for Wildberries Parser SDK (`wb-mcp`).
-Exposes Wildberries card inspection, catalog search, seller extraction, sharded feedback lookups,
-and SQLite price drop monitoring over JSON-RPC 2.0 stdio.
+Native Model Context Protocol (MCP) Server for WB SDK Pro (`wb-mcp`).
+Exposes 8 JSON-RPC 2.0 stdio tools for Wildberries CDN card inspection, catalog search,
+seller extraction, sharded feedback lookups, SQLite price-drop monitoring, live WB Wallet
+pricing, search rank checking, and smart review analysis.
 """
 
 from __future__ import annotations
@@ -144,7 +145,7 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
 
 
 class WBMCPServer:
-    """Zero-dependency Model Context Protocol (MCP) JSON-RPC 2.0 server."""
+    """Native Model Context Protocol (MCP) JSON-RPC 2.0 stdio server (`wb-parser-mcp`)."""
 
     def __init__(
         self,

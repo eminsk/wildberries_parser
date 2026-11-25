@@ -1,12 +1,13 @@
 """
-Wildberries SDK Pro — Modern Dark Desktop GUI Application.
+Wildberries SDK Pro — Modern Dark 7-Tab Desktop GUI Application (`wb-gui`).
 
-Modular, thread-safe CustomTkinter interface supporting:
-- Direct CDN product card extraction (`card.json` + `.webp` images + `feedbacks1/2` shard reviews)
-- Seller store & keyword search scraping (with optional proxy / browser session cookies / region)
-- Live product feed with price-drop badges, filters, clickable WB & CDN links
-- 1-click export to Excel (.xlsx), CSV, and JSON
-- Dedicated proxy ping/latency diagnostics & decoupled Telegram alerts
+Modular, thread-safe CustomTkinter interface (optional `[gui]` extra) supporting:
+- Parser tab: URL/nm_id/seller/search targets, price/discount/rating/keyword filters, 24/7 loop
+- Catalog feed: live cards, WB Wallet checkout price, price-drop badges, Excel/CSV/JSON export
+- Search Rank Tracker tab: batch `nm_id : query` checks across pages 1..N with SQLite deltas & .xlsx
+- Smart Review Analyzer tab: exact-color or root_id review pros/cons/size fit (offline or LLM API)
+- Proxy & Session tab: regional `dest`, HTTP/SOCKS5 proxy, rotation URL, cookies/wbaas, CDN ping
+- Decoupled Telegram alerts & live execution Logs tab
 """
 
 from __future__ import annotations
