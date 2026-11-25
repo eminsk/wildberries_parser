@@ -101,6 +101,45 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
             },
         },
     },
+    {
+        "name": "wb_wallet_price",
+        "description": "Fetch active WB Wallet discount rules and calculate exact floored wallet price in RUB.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "price": {"type": "number", "description": "Product price in RUB"},
+                "use_club": {"type": "boolean", "default": False, "description": "Use WB Club discount tier"},
+            },
+            "required": ["price"],
+        },
+    },
+    {
+        "name": "wb_check_rank",
+        "description": "Check a Wildberries product's organic search position (rank) for a keyword query and log history.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "Product URL or numeric nm_id"},
+                "query": {"type": "string", "description": "Search keyword"},
+                "max_pages": {"type": "integer", "default": 3},
+            },
+            "required": ["target", "query"],
+        },
+    },
+    {
+        "name": "wb_smart_reviews",
+        "description": "Extract real product pros/cons, size fit stats, and rating breakdown via CDN + feedbacks1/2.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string", "description": "Product URL or numeric nm_id"},
+                "only_this_color": {"type": "boolean", "default": True},
+                "limit": {"type": "integer", "default": 100},
+                "ai_key": {"type": "string", "description": "Optional OpenAI-compatible API key for LLM summarization"},
+            },
+            "required": ["target"],
+        },
+    },
 ]
 
 
@@ -258,6 +297,37 @@ class WBMCPServer:
                 return {"nm_id": nm_id, "history": [h.model_dump() for h in history]}
             drops = tracker.get_price_drops(limit=int(args.get("limit", 50)))
             return {"count": len(drops), "drops": [d.model_dump() for d in drops]}
+
+        if name == "wb_wallet_price":
+            res = self.client.wallet_price(float(args["price"]), use_club=bool(args.get("use_club", False)))
+            return {
+                "base_price": res.base_price,
+                "wallet_price": res.wallet_price,
+                "savings": res.savings,
+                "discount_pct": res.discount_pct,
+                "applied": res.applied,
+                "reason": res.reason,
+            }
+
+        if name == "wb_check_rank":
+            res = self.client.check_rank(
+                args["target"],
+                str(args["query"]),
+                max_pages=int(args.get("max_pages", 3)),
+            )
+            return res.model_dump()
+
+        if name == "wb_smart_reviews":
+            summary = self.client.analyze_reviews(
+                args["target"],
+                only_this_color=bool(args.get("only_this_color", True)),
+                limit=int(args.get("limit", 100)),
+                ai_key=args.get("ai_key"),
+            )
+            data = summary.model_dump()
+            # Keep compact payload for LLM contexts
+            data["reviews"] = data["reviews"][:15]
+            return data
 
         raise ValueError(f"Unknown MCP tool: {name}")
 

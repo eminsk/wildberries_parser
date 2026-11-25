@@ -69,6 +69,8 @@ class WBProduct(BaseModel):
 
     price: float = 0.0
     basic_price: float = 0.0
+    wallet_price: Optional[float] = None
+    wallet_discount_pct: Optional[float] = None
     old_price: Optional[float] = None
     discount: int = Field(default=0, alias="sale")
 
@@ -157,8 +159,7 @@ class WBProduct(BaseModel):
                         first_price = sz["price"]
                 elif isinstance(sz, str):
                     extracted_sizes.append(sz)
-            if extracted_sizes:
-                data["sizes"] = extracted_sizes
+            data["sizes"] = extracted_sizes
             if isinstance(first_price, dict):
                 if price_val is None:
                     raw_prod = first_price.get("product") or first_price.get("total")

@@ -13,7 +13,7 @@ from typing import List, Optional
 from wb_parser import __version__
 from wb_parser.client import WBClient, filter_products
 from wb_parser.config import DEFAULT_DEST, DEST_CODES, DOCS_URL, ISSUES_URL, TELEGRAM_CHANNEL_URL
-from wb_parser.export import to_csv, to_excel, to_json, to_jsonl
+from wb_parser.export import rank_results_to_excel, to_csv, to_excel, to_json, to_jsonl
 from wb_parser.models import WBProduct
 from wb_parser.shards import calculate_feedback_shard, extract_nm_id
 from wb_parser.tracker import WBPriceTracker
@@ -136,11 +136,37 @@ def main(argv: Optional[List[str]] = None) -> int:
     up_p = subparsers.add_parser("upstreams", help="Fetch live CDN basket shard ranges (cdn.wbbasket.ru)")
     _add_network_args(up_p)
 
-    # 7. mcp
+    # 7. wallet
+    wal_p = subparsers.add_parser("wallet", help="Calculate WB Wallet discounted price for a RUB price")
+    wal_p.add_argument("price", type=float, help="Base price in RUB")
+    wal_p.add_argument("--club", action="store_true", help="Use WB Club discount tier")
+    _add_network_args(wal_p)
+
+    # 8. rank
+    rank_p = subparsers.add_parser("rank", help="Check product search position (rank) for a keyword query")
+    rank_p.add_argument("target", help="Product URL or numeric nm_id")
+    rank_p.add_argument("query", help="Search keyword query")
+    rank_p.add_argument("-p", "--pages", type=int, default=3, help="Max search pages to scan (100 items/page)")
+    rank_p.add_argument("--sort", default="popular", help="Sort order (popular, pricedown, priceup, rate)")
+    rank_p.add_argument("-o", "--output", help="Save rank report (.xlsx or .json)")
+    _add_network_args(rank_p)
+
+    # 9. reviews
+    rev_p = subparsers.add_parser("reviews", help="Smart Review Analyzer (pros/cons/size fit via CDN + feedbacks1/2)")
+    rev_p.add_argument("target", help="Product URL or numeric nm_id")
+    rev_p.add_argument("--all-colors", action="store_true", help="Analyze all linked colors (root_id) instead of single nm_id")
+    rev_p.add_argument("-n", "--limit", type=int, default=100, help="Max reviews to inspect")
+    rev_p.add_argument("--ai-key", default=None, help="Optional OpenAI-compatible API key for LLM summary")
+    rev_p.add_argument("--ai-url", default="https://api.openai.com/v1", help="OpenAI-compatible base URL")
+    rev_p.add_argument("--ai-model", default="gpt-4o-mini", help="Model name (default: gpt-4o-mini)")
+    rev_p.add_argument("-o", "--output", help="Save summary JSON file")
+    _add_network_args(rev_p)
+
+    # 10. mcp
     mcp_p = subparsers.add_parser("mcp", help="Start native JSON-RPC 2.0 MCP Server over stdio")
     _add_network_args(mcp_p)
 
-    # 8. gui
+    # 11. gui
     subparsers.add_parser("gui", help="Launch Dark-Themed WB SDK Pro Desktop GUI")
 
     args = parser.parse_args(argv)
@@ -179,7 +205,58 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.command == "upstreams":
             ping = client.ping()
             count = client.sync_upstreams()
-            print(json.dumps({"ping": ping, "basket_routes": count}, indent=2))
+            wallet_cfg = client.wallet.fetch_settings()
+            print(json.dumps({
+                "ping": ping,
+                "basket_routes": count,
+                "wallet_discount_pct": float(wallet_cfg.wallet_discount_pct),
+                "wallet_club_pct": float(wallet_cfg.club_discount_pct),
+                "wallet_max_price": float(wallet_cfg.max_price),
+            }, indent=2))
+            return 0
+
+        if args.command == "wallet":
+            res = client.wallet_price(args.price, use_club=args.club)
+            print(json.dumps({
+                "base_price": res.base_price,
+                "wallet_price": res.wallet_price,
+                "savings": res.savings,
+                "discount_pct": res.discount_pct,
+                "applied": res.applied,
+                "reason": res.reason,
+            }, indent=2))
+            return 0
+
+        if args.command == "rank":
+            res = client.check_rank(args.target, args.query, max_pages=args.pages, sort=args.sort)
+            print(res.model_dump_json(indent=2))
+            if args.output:
+                out_p = Path(args.output)
+                if out_p.suffix.lower() == ".xlsx":
+                    rank_results_to_excel([res], out_p)
+                else:
+                    out_p.write_text(res.model_dump_json(indent=2), encoding="utf-8")
+                print(f"[+] Exported rank report -> {out_p}")
+            return 0
+
+        if args.command == "reviews":
+            summary = client.analyze_reviews(
+                args.target,
+                only_this_color=not args.all_colors,
+                limit=args.limit,
+                ai_key=args.ai_key,
+                ai_base_url=args.ai_url,
+                ai_model=args.ai_model,
+            )
+            print(f"[{summary.nm_id}] {summary.product_name} (root={summary.root_id}, shard=feedbacks{summary.shard})")
+            print(f"Analyzed: {summary.total_analyzed} / {summary.total_available} | Avg: {summary.avg_rating} | Mode: {summary.summary_mode}")
+            if summary.size_fit:
+                print(f"Size fit: {summary.size_fit}")
+            print("Pros (+):", summary.top_pros)
+            print("Cons (-):", summary.top_cons)
+            if args.output:
+                Path(args.output).write_text(summary.model_dump_json(indent=2), encoding="utf-8")
+                print(f"[+] Saved review summary -> {args.output}")
             return 0
 
         if args.command == "card":

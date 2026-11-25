@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wb-parser-sdk"
-version = "2.0.0"
-description = "High-performance Wildberries SDK & Desktop GUI: dynamic basket-01..65+ sharding, feedbacks1/2 routing, Chrome TLS fingerprinting, async scraping, MCP server, and Excel export"
+version = "2.1.0"
+description = "Unified Wildberries SDK, CLI, Native MCP Server & Dark Desktop GUI: CDN card extraction, feedbacks1/2 sharding, WB Wallet pricing, Search Rank Tracker, Smart Review Analyzer, and Excel export"
 readme = "README.md"
 authors = [
     { name = "eminsk", email = "M_N_Nik@yahoo.com" },

@@ -8,7 +8,7 @@ feedback collection (`feedbacks1` / `feedbacks2`), price tracking, and Excel exp
 
 from __future__ import annotations
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 from wb_parser.client import AsyncWBClient, ParseWB, WBClient, filter_products
 from wb_parser.config import DEST_CODES, DEFAULT_DEST, WBConfig
@@ -20,7 +20,7 @@ from wb_parser.exceptions import (
     WBRateLimitError,
     WBValidationError,
 )
-from wb_parser.export import to_csv, to_dataframe, to_excel, to_json, to_jsonl
+from wb_parser.export import rank_results_to_excel, to_csv, to_dataframe, to_excel, to_json, to_jsonl
 from wb_parser.models import (
     Feedback,
     FeedbackInfo,
@@ -30,6 +30,8 @@ from wb_parser.models import (
     WBProduct,
     WBSearchPage,
 )
+from wb_parser.rank import RankResult, WBRankTracker
+from wb_parser.reviews import ReviewItem, ReviewSummary, SmartReviewAnalyzer
 from wb_parser.shards import (
     DEFAULT_BASKET_RANGES,
     BasketRoute,
@@ -42,6 +44,7 @@ from wb_parser.shards import (
 )
 from wb_parser.telegram import TelegramNotifier
 from wb_parser.tracker import WBPriceTracker
+from wb_parser.wallet import WBWalletCalculator, WalletPriceResult, WalletSettings
 
 __all__ = [
     "__version__",
@@ -57,6 +60,10 @@ __all__ = [
     "Items",
     "ParseWB",
     "PriceRecord",
+    "RankResult",
+    "ReviewItem",
+    "ReviewSummary",
+    "SmartReviewAnalyzer",
     "TelegramNotifier",
     "WBAntiBotError",
     "WBClient",
@@ -66,15 +73,20 @@ __all__ = [
     "WBNotFoundError",
     "WBPriceTracker",
     "WBProduct",
+    "WBRankTracker",
     "WBRateLimitError",
     "WBSearchPage",
     "WBValidationError",
+    "WBWalletCalculator",
+    "WalletPriceResult",
+    "WalletSettings",
     "calculate_feedback_shard",
     "classify_target",
     "extract_nm_id",
     "extract_seller_id",
     "feedback_url",
     "filter_products",
+    "rank_results_to_excel",
     "to_csv",
     "to_dataframe",
     "to_excel",

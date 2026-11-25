@@ -55,6 +55,7 @@ def to_csv(
         "brand",
         "subject",
         "price",
+        "wallet_price",
         "basic_price",
         "discount_pct",
         "old_price",
@@ -82,6 +83,7 @@ def to_csv(
                     "brand": p.brand,
                     "subject": p.subject,
                     "price": p.price,
+                    "wallet_price": p.wallet_price if p.wallet_price is not None else "",
                     "basic_price": p.basic_price,
                     "discount_pct": p.discount,
                     "old_price": p.old_price if p.old_price is not None else "",
@@ -126,6 +128,7 @@ def to_excel(
         "Бренд",
         "Категория",
         "Цена (₽)",
+        "С WB Кошельком (₽)",
         "До скидки (₽)",
         "Скидка (%)",
         "Снижение цены (₽)",
@@ -164,6 +167,7 @@ def to_excel(
             _excel_safe(p.brand),
             _excel_safe(p.subject),
             p.price,
+            p.wallet_price if p.wallet_price is not None else "",
             p.basic_price,
             p.discount,
             drop_val if drop_val > 0 else "",
@@ -178,18 +182,18 @@ def to_excel(
         ws.append(row_values)
 
         if p.url:
-            c_url = ws.cell(row=row_idx, column=14)
+            c_url = ws.cell(row=row_idx, column=15)
             c_url.hyperlink = p.url
             c_url.font = link_font
 
         if main_img:
-            c_img = ws.cell(row=row_idx, column=15)
+            c_img = ws.cell(row=row_idx, column=16)
             c_img.hyperlink = main_img
             c_img.font = link_font
 
         if drop_val > 0:
             ws.cell(row=row_idx, column=6).fill = drop_fill
-            ws.cell(row=row_idx, column=9).fill = drop_fill
+            ws.cell(row=row_idx, column=10).fill = drop_fill
 
     col_widths = {
         1: 16,
@@ -198,20 +202,84 @@ def to_excel(
         4: 20,
         5: 20,
         6: 12,
-        7: 14,
-        8: 12,
-        9: 16,
-        10: 10,
-        11: 14,
-        12: 10,
-        13: 14,
-        14: 36,
+        7: 18,
+        8: 14,
+        9: 12,
+        10: 16,
+        11: 10,
+        12: 14,
+        13: 10,
+        14: 14,
         15: 36,
-        16: 44,
+        16: 36,
+        17: 44,
     }
     for col_idx, width in col_widths.items():
         ws.column_dimensions[get_column_letter(col_idx)].width = width
 
+    wb.save(str(path))
+    return path
+
+
+def rank_results_to_excel(
+    results: List[Any],
+    filepath: Union[str, Path],
+    sheet_name: str = "WB Search Ranks",
+) -> Path:
+    """Export search position tracker results (`RankResult`) to styled Excel `.xlsx`."""
+    path = Path(filepath)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import openpyxl
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = sheet_name[:31]
+
+    headers = [
+        "Артикул (nm_id)",
+        "Ключевой запрос",
+        "Позиция в выдаче",
+        "Страница",
+        "Слот на стр.",
+        "Прошлая позиция",
+        "Динамика",
+        "Название",
+        "Цена (₽)",
+        "WB Кошелёк (₽)",
+        "Время проверки",
+    ]
+    ws.append(headers)
+    header_fill = PatternFill(start_color="4C1D95", end_color="4C1D95", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    for col_idx in range(1, len(headers) + 1):
+        c = ws.cell(row=1, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.freeze_panes = "A2"
+
+    for r in results:
+        delta = ""
+        if getattr(r, "rank_delta", None) is not None:
+            delta = f"+{r.rank_delta}" if r.rank_delta > 0 else str(r.rank_delta)
+        ws.append([
+            r.nm_id,
+            _excel_safe(r.query),
+            r.position if r.position is not None else "Не найден",
+            r.page if r.page is not None else "",
+            r.page_position if r.page_position is not None else "",
+            r.previous_position if r.previous_position is not None else "",
+            delta,
+            _excel_safe(getattr(r, "title", "")),
+            getattr(r, "price", 0.0),
+            getattr(r, "wallet_price", "") or "",
+            r.checked_at,
+        ])
+
+    for i, w in enumerate([16, 30, 18, 10, 12, 16, 12, 38, 12, 16, 26], start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
     wb.save(str(path))
     return path
 

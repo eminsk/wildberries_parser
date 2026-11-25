@@ -39,6 +39,8 @@ class TelegramNotifier:
         title = html.escape(product.name or f"Артикул {product.id}")
         brand = html.escape(product.brand or "—")
         price_line = f"<b>{product.price:,.0f} ₽</b>" if product.price > 0 else "<b>Цена уточняется</b>"
+        if product.wallet_price:
+            price_line += f" (💳 Кошелёк: <b>{product.wallet_price:,.0f} ₽</b>)"
         if product.discount > 0:
             price_line += f"  <i>(-{product.discount}%)</i>"
         if product.price_drop:

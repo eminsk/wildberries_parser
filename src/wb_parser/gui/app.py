@@ -31,9 +31,11 @@ from wb_parser import __version__
 from wb_parser.client import WBClient, filter_products
 from wb_parser.config import DEFAULT_DEST, DEST_CODES, ISSUES_URL, TELEGRAM_CHANNEL_URL
 from wb_parser.exceptions import WBAntiBotError
-from wb_parser.export import to_csv, to_excel, to_json
+from wb_parser.export import rank_results_to_excel, to_csv, to_excel, to_json
 from wb_parser.http import CURL_CFFI_AVAILABLE
 from wb_parser.models import WBProduct
+from wb_parser.rank import RankResult, WBRankTracker
+from wb_parser.reviews import ReviewSummary, SmartReviewAnalyzer
 from wb_parser.telegram import TelegramNotifier
 
 logger = logging.getLogger("wb_parser.gui")
@@ -77,6 +79,15 @@ class WBGUIConfig:
         self.tg_chat_id: str = ""
         self.tg_proxy: str = ""
         self.tg_notify: bool = False
+        self.rank_pairs: List[str] = [
+            "141217830 : кроссовки sb dunk",
+            "339182812 : кеды мужские",
+        ]
+        self.rank_pages: int = 3
+        self.review_target: str = "141217830"
+        self.review_only_color: bool = True
+        self.review_ai_key: str = ""
+        self.review_ai_url: str = "https://api.openai.com/v1"
 
     @classmethod
     def load(cls) -> "WBGUIConfig":
@@ -140,6 +151,7 @@ class WBGUIApp:
 
         self.seen_ids: Set[int] = set()
         self.discovered_items: List[WBProduct] = []
+        self.rank_results: List[RankResult] = []
         self.stats_found = 0
         self.stats_discounts = 0
         self.stats_checks = 0
@@ -261,12 +273,16 @@ class WBGUIApp:
 
         self.tab_parse = self.tabview.add("🔍 Парсер")
         self.tab_feed = self.tabview.add("📦 Каталог товаров")
+        self.tab_rank = self.tabview.add("📈 Позиции (Rank)")
+        self.tab_reviews = self.tabview.add("💬 Умные отзывы")
         self.tab_proxy = self.tabview.add("🌐 Прокси и Сессия")
         self.tab_tg = self.tabview.add("✈️ Telegram")
         self.tab_logs = self.tabview.add("📋 Журнал")
 
         self._build_parse_tab()
         self._build_feed_tab()
+        self._build_rank_tab()
+        self._build_reviews_tab()
         self._build_proxy_tab()
         self._build_tg_tab()
         self._build_logs_tab()
@@ -428,6 +444,139 @@ class WBGUIApp:
         )
         self.lbl_empty_feed.pack(pady=40)
 
+    def _build_rank_tab(self) -> None:
+        left = ctk.CTkFrame(self.tab_rank, width=370, fg_color="#0f172a", corner_radius=8)
+        left.pack(side="left", fill="y", padx=(10, 6), pady=10)
+        left.pack_propagate(False)
+
+        ctk.CTkLabel(
+            left,
+            text="Проверка позиций в выдаче (артикул : запрос):",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        ).pack(anchor="w", padx=12, pady=(12, 4))
+
+        self.txt_rank_pairs = ctk.CTkTextbox(left, height=220, font=ctk.CTkFont(size=12))
+        self.txt_rank_pairs.pack(fill="x", padx=12, pady=(0, 10))
+
+        row_opts = ctk.CTkFrame(left, fg_color="transparent")
+        row_opts.pack(fill="x", padx=12, pady=4)
+        ctk.CTkLabel(row_opts, text="Глубина (страниц):", font=ctk.CTkFont(size=12)).pack(side="left")
+        self.entry_rank_pages = ctk.CTkEntry(row_opts, width=65)
+        self.entry_rank_pages.pack(side="right")
+
+        row_sort = ctk.CTkFrame(left, fg_color="transparent")
+        row_sort.pack(fill="x", padx=12, pady=4)
+        ctk.CTkLabel(row_sort, text="Сортировка:", font=ctk.CTkFont(size=12)).pack(side="left")
+        self.opt_rank_sort = ctk.CTkOptionMenu(
+            row_sort, values=["popular", "pricedown", "priceup", "rate", "newly"], width=150
+        )
+        self.opt_rank_sort.pack(side="right")
+
+        self.btn_rank_check = ctk.CTkButton(
+            left,
+            text="📈 Проверить позиции",
+            height=40,
+            fg_color="#7c3aed",
+            hover_color="#6d28d9",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._run_rank_check,
+        )
+        self.btn_rank_check.pack(fill="x", padx=12, pady=(14, 6))
+
+        ctk.CTkButton(
+            left,
+            text="📊 Экспорт позиций (.xlsx)",
+            height=34,
+            fg_color="#16a34a",
+            hover_color="#15803d",
+            command=self._export_rank_excel,
+        ).pack(fill="x", padx=12, pady=4)
+
+        ctk.CTkLabel(
+            left,
+            text="Формат строк: 401385455 : джинсы женские\nИстория позиций сохраняется в SQLite\nи показывает динамику ▲/▼.",
+            font=ctk.CTkFont(size=11),
+            text_color="#94a3b8",
+            justify="left",
+        ).pack(anchor="w", padx=12, pady=(12, 6))
+
+        self.rank_scroll = ctk.CTkScrollableFrame(self.tab_rank, fg_color="#0f172a", corner_radius=8)
+        self.rank_scroll.pack(side="right", fill="both", expand=True, padx=(6, 10), pady=10)
+        self.lbl_rank_placeholder = ctk.CTkLabel(
+            self.rank_scroll,
+            text="Результаты позиций по ключевым запросам появятся здесь.",
+            text_color="#94a3b8",
+        )
+        self.lbl_rank_placeholder.pack(pady=40)
+
+    def _build_reviews_tab(self) -> None:
+        top = ctk.CTkFrame(self.tab_reviews, fg_color="#0f172a", corner_radius=8)
+        top.pack(fill="x", padx=10, pady=(10, 6))
+
+        row1 = ctk.CTkFrame(top, fg_color="transparent")
+        row1.pack(fill="x", padx=12, pady=(10, 6))
+
+        self.entry_review_target = self._make_labeled_entry(
+            row1, "Ссылка WB или артикул (nm_id)", "141217830 или https://www.wildberries.ru/catalog/...", expand=True
+        )
+        self.var_review_color = ctk.BooleanVar(value=True)
+        ctk.CTkCheckBox(
+            row1, text="Только этот цвет (nm_id)", variable=self.var_review_color
+        ).pack(side="left", padx=(10, 8), pady=(14, 0))
+
+        self.btn_review_run = ctk.CTkButton(
+            row1,
+            text="🧠 Анализировать отзывы",
+            width=200,
+            height=36,
+            fg_color="#7c3aed",
+            hover_color="#6d28d9",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._run_review_analysis,
+        )
+        self.btn_review_run.pack(side="right", pady=(12, 0))
+
+        row2 = ctk.CTkFrame(top, fg_color="transparent")
+        row2.pack(fill="x", padx=12, pady=(0, 10))
+        self.entry_review_ai_key = self._make_labeled_entry(
+            row2, "OpenAI / DeepSeek / ProxyAPI Key (опционально — без ключа работает быстрый оффлайн-анализ)", "sk-...", expand=True
+        )
+        self.entry_review_ai_url = self._make_labeled_entry(
+            row2, "API Base URL (опц.)", "https://api.openai.com/v1", width=260
+        )
+
+        # KPI & Pros/Cons Split
+        self.lbl_review_kpi = ctk.CTkLabel(
+            self.tab_reviews,
+            text="Введите артикул и нажмите «Анализировать отзывы» (работает напрямую через CDN + feedbacks1/2 без прокси)",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#cbd5e1",
+        )
+        self.lbl_review_kpi.pack(anchor="w", padx=14, pady=(2, 4))
+
+        split = ctk.CTkFrame(self.tab_reviews, fg_color="transparent", height=185)
+        split.pack(fill="x", padx=10, pady=4)
+        split.pack_propagate(False)
+
+        pros_card = ctk.CTkFrame(split, fg_color="#052e16", corner_radius=8)
+        pros_card.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        ctk.CTkLabel(
+            pros_card, text="✅ Главные плюсы", font=ctk.CTkFont(size=13, weight="bold"), text_color="#4ade80"
+        ).pack(anchor="w", padx=12, pady=(8, 4))
+        self.txt_review_pros = ctk.CTkTextbox(pros_card, fg_color="#052e16", font=ctk.CTkFont(size=12))
+        self.txt_review_pros.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        cons_card = ctk.CTkFrame(split, fg_color="#450a0a", corner_radius=8)
+        cons_card.pack(side="right", fill="both", expand=True, padx=(5, 0))
+        ctk.CTkLabel(
+            cons_card, text="❌ Главные минусы", font=ctk.CTkFont(size=13, weight="bold"), text_color="#f87171"
+        ).pack(anchor="w", padx=12, pady=(8, 4))
+        self.txt_review_cons = ctk.CTkTextbox(cons_card, fg_color="#450a0a", font=ctk.CTkFont(size=12))
+        self.txt_review_cons.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+
+        self.reviews_scroll = ctk.CTkScrollableFrame(self.tab_reviews, fg_color="#0f172a", corner_radius=8)
+        self.reviews_scroll.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+
     def _build_proxy_tab(self) -> None:
         frame = ctk.CTkFrame(self.tab_proxy, fg_color="#0f172a", corner_radius=8)
         frame.pack(fill="both", expand=True, padx=12, pady=12)
@@ -554,6 +703,14 @@ class WBGUIApp:
         self.entry_tg_proxy.insert(0, cfg.tg_proxy)
         self.var_tg_notify.set(cfg.tg_notify)
 
+        self.txt_rank_pairs.delete("1.0", "end")
+        self.txt_rank_pairs.insert("1.0", "\n".join(cfg.rank_pairs))
+        self.entry_rank_pages.insert(0, str(cfg.rank_pages))
+        self.entry_review_target.insert(0, cfg.review_target)
+        self.var_review_color.set(cfg.review_only_color)
+        self.entry_review_ai_key.insert(0, cfg.review_ai_key)
+        self.entry_review_ai_url.insert(0, cfg.review_ai_url)
+
     def _save_ui_to_config(self) -> WBGUIConfig:
         cfg = self.config
         raw_targets = self.txt_targets.get("1.0", "end").splitlines()
@@ -579,6 +736,13 @@ class WBGUIApp:
         cfg.tg_chat_id = self.entry_tg_chat.get().strip()
         cfg.tg_proxy = self.entry_tg_proxy.get().strip()
         cfg.tg_notify = bool(self.var_tg_notify.get())
+        raw_ranks = self.txt_rank_pairs.get("1.0", "end").splitlines()
+        cfg.rank_pairs = [line.strip() for line in raw_ranks if line.strip()]
+        cfg.rank_pages = int(self.entry_rank_pages.get().strip() or 3)
+        cfg.review_target = self.entry_review_target.get().strip()
+        cfg.review_only_color = bool(self.var_review_color.get())
+        cfg.review_ai_key = self.entry_review_ai_key.get().strip()
+        cfg.review_ai_url = self.entry_review_ai_url.get().strip() or "https://api.openai.com/v1"
         cfg.save()
         return cfg
 
@@ -628,6 +792,8 @@ class WBGUIApp:
         top.pack(fill="x", padx=12, pady=(8, 4))
 
         price_str = f"{product.price:,.0f} ₽" if product.price > 0 else "CDN Карточка"
+        if product.wallet_price:
+            price_str += f" (💳 {product.wallet_price:,.0f} ₽)"
         if product.discount > 0:
             price_str += f" (-{product.discount}%)"
         if product.price_drop:
@@ -791,6 +957,156 @@ class WBGUIApp:
             self.root.after(0, lambda: self.btn_stop.configure(state="disabled"))
             self.status_queue.put(("● ГОТОВ К РАБОТЕ", "#22c55e", "#064e3b"))
 
+    def _build_client_from_cfg(self, cfg: WBGUIConfig) -> WBClient:
+        return WBClient(
+            dest=DEST_CODES.get(cfg.dest_name, DEFAULT_DEST),
+            proxy=cfg.proxy_string or None,
+            proxy_change_url=cfg.proxy_change_url or None,
+            cookies=cfg.cookies or None,
+            wbaas_token=cfg.wbaas_token or None,
+            tracker_db=str(_get_base_dir() / "storage" / "wb_prices.db"),
+        )
+
+    def _run_rank_check(self) -> None:
+        cfg = self._save_ui_to_config()
+        pairs: List[tuple[str, str]] = []
+        for line in cfg.rank_pairs:
+            if ":" in line:
+                left, right = line.split(":", 1)
+                pairs.append((left.strip(), right.strip()))
+        if not pairs:
+            self._log("[!] Укажите пары вида `артикул : запрос` во вкладке Позиции.")
+            return
+
+        self.btn_rank_check.configure(state="disabled")
+        sort_mode = self.opt_rank_sort.get()
+
+        def worker() -> None:
+            try:
+                with self._build_client_from_cfg(cfg) as c:
+                    tracker = WBRankTracker(c, db_path=str(_get_base_dir() / "storage" / "wb_prices.db"))
+                    res = tracker.check_batch(pairs, max_pages=cfg.rank_pages, sort=sort_mode)
+                self.rank_results = res
+                self.root.after(0, lambda: self._render_rank_results(res))
+            except WBAntiBotError as exc:
+                self._log(f"[Rank WBAAS 498/403] {exc}")
+            except Exception as exc:
+                self._log(f"[Ошибка Rank] {exc}")
+            finally:
+                self.root.after(0, lambda: self.btn_rank_check.configure(state="normal"))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _render_rank_results(self, results: List[RankResult]) -> None:
+        for child in self.rank_scroll.winfo_children():
+            child.destroy()
+        if not results:
+            ctk.CTkLabel(self.rank_scroll, text="Совпадений не найдено.", text_color="#94a3b8").pack(pady=30)
+            return
+
+        for r in results:
+            card = ctk.CTkFrame(self.rank_scroll, fg_color="#1e293b", corner_radius=8)
+            card.pack(fill="x", padx=6, pady=4)
+            pos_str = f"#{r.position} (стр. {r.page}, слот {r.page_position})" if r.position else f"Не найден (проверено {r.total_scanned})"
+            delta_str = ""
+            pos_color = "#a78bfa" if r.position else "#ef4444"
+            if r.rank_delta is not None:
+                if r.rank_delta > 0:
+                    delta_str = f"  ▲ +{r.rank_delta}"
+                elif r.rank_delta < 0:
+                    delta_str = f"  ▼ {r.rank_delta}"
+                else:
+                    delta_str = "  = 0"
+
+            ctk.CTkLabel(
+                card,
+                text=f"🔎 «{r.query}» • nm={r.nm_id}",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color="#f8fafc",
+            ).pack(side="left", padx=12, pady=8)
+
+            ctk.CTkLabel(
+                card,
+                text=f"{pos_str}{delta_str}",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=pos_color,
+            ).pack(side="right", padx=12, pady=8)
+
+    def _export_rank_excel(self) -> None:
+        if not self.rank_results:
+            self._log("Нет результатов позиций для экспорта.")
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")])
+        if path:
+            rank_results_to_excel(self.rank_results, path)
+            self._log(f"Позиции экспортированы в Excel: {path}")
+
+    def _run_review_analysis(self) -> None:
+        cfg = self._save_ui_to_config()
+        if not cfg.review_target:
+            self._log("[!] Введите артикул или ссылку во вкладке «Умные отзывы».")
+            return
+
+        self.btn_review_run.configure(state="disabled")
+        self.lbl_review_kpi.configure(text="⏳ Загрузка карточки с CDN и отзывов с feedbacks1/2...")
+
+        def worker() -> None:
+            try:
+                with self._build_client_from_cfg(cfg) as c:
+                    summary = c.analyze_reviews(
+                        cfg.review_target,
+                        only_this_color=cfg.review_only_color,
+                        limit=120,
+                        ai_key=cfg.review_ai_key or None,
+                        ai_base_url=cfg.review_ai_url,
+                    )
+                self.root.after(0, lambda: self._render_review_summary(summary))
+            except Exception as exc:
+                self._log(f"[Ошибка Smart Review] {exc}")
+                self.root.after(0, lambda: self.lbl_review_kpi.configure(text=f"❌ Ошибка: {exc}"))
+            finally:
+                self.root.after(0, lambda: self.btn_review_run.configure(state="normal"))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _render_review_summary(self, s: ReviewSummary) -> None:
+        fit_str = ", ".join(f"{k}: {v}" for k, v in s.size_fit.items()) if s.size_fit else "н/д"
+        scope = "цвет nm_id" if s.filtered_by_nm else "вся карточка root_id"
+        self.lbl_review_kpi.configure(
+            text=(
+                f"🛍 {s.product_name[:55]} | ⭐ {s.avg_rating} | Отзывов: {s.total_analyzed}/{s.total_available} "
+                f"| Шард: feedbacks{s.shard} ({scope}) | Размер: {fit_str} | [{s.summary_mode}]"
+            )
+        )
+        self.txt_review_pros.delete("1.0", "end")
+        self.txt_review_pros.insert("1.0", "\n".join(f"• {x}" for x in s.top_pros) or "Нет выделенных плюсов")
+
+        self.txt_review_cons.delete("1.0", "end")
+        self.txt_review_cons.insert("1.0", "\n".join(f"• {x}" for x in s.top_cons) or "Существенных минусов не найдено")
+
+        for child in self.reviews_scroll.winfo_children():
+            child.destroy()
+        for rev in s.reviews[:40]:
+            box = ctk.CTkFrame(self.reviews_scroll, fg_color="#1e293b", corner_radius=6)
+            box.pack(fill="x", padx=6, pady=4)
+            parts = []
+            if rev.pros:
+                parts.append(f"+ {rev.pros}")
+            if rev.cons:
+                parts.append(f"- {rev.cons}")
+            if rev.text:
+                parts.append(rev.text)
+            body = " | ".join(parts)
+            ctk.CTkLabel(
+                box,
+                text=f"[{rev.rating}★] {body[:280]}",
+                anchor="w",
+                justify="left",
+                wraplength=980,
+                font=ctk.CTkFont(size=12),
+                text_color="#e2e8f0",
+            ).pack(fill="x", padx=10, pady=6)
+
     def _test_proxy_connectivity(self) -> None:
         cfg = self._save_ui_to_config()
         self.lbl_proxy_status.configure(text="⏳ Проверка...", text_color="#facc15")
@@ -798,8 +1114,12 @@ class WBGUIApp:
         def run_check() -> None:
             with WBClient(proxy=cfg.proxy_string or None) as c:
                 res = c.ping()
+                w = c.wallet.fetch_settings()
             if res["ok"]:
-                msg = f"✅ OK • HTTP 200 • {res['latency_ms']} мс ({res['tls']})"
+                msg = (
+                    f"✅ OK • {res['latency_ms']} мс ({res['tls']}) • "
+                    f"WB Кошелёк: {w.wallet_discount_pct}% / Клуб: {w.club_discount_pct}% (до {w.max_price} ₽)"
+                )
                 color = "#22c55e"
             else:
                 msg = f"❌ Ошибка: {res.get('error', res['status_code'])}"

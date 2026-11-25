@@ -21,6 +21,7 @@ def _sample_products():
             subject="Кроссовки",
             price=4990.0,
             basic_price=7990.0,
+            wallet_price=4890.0,
             old_price=5500.0,
             discount=38,
             rating=4.9,
@@ -50,8 +51,9 @@ def test_exporters_roundtrip(tmp_path: Path):
     ws = wb.active
     assert ws.cell(row=2, column=1).value == 141217830
     assert str(ws.cell(row=2, column=3).value).startswith("'=CMD")
-    assert ws.cell(row=2, column=9).value == 510.0  # price_drop
-    assert ws.cell(row=2, column=14).hyperlink.target == "https://www.wildberries.ru/catalog/141217830/detail.aspx"
+    assert ws.cell(row=2, column=7).value == 4890.0  # wallet_price
+    assert ws.cell(row=2, column=10).value == 510.0  # price_drop
+    assert ws.cell(row=2, column=15).hyperlink.target == "https://www.wildberries.ru/catalog/141217830/detail.aspx"
 
     csv_path = to_csv(products, tmp_path / "catalog.csv")
     assert csv_path.exists()

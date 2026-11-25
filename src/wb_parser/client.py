@@ -36,11 +36,13 @@ from wb_parser.shards import (
     feedback_url,
 )
 from wb_parser.tracker import WBPriceTracker
+from wb_parser.wallet import WBWalletCalculator, WalletPriceResult
 
 logger = logging.getLogger("wb_parser.client")
 
 SEARCH_ENDPOINTS = (
     "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v18/search",
+    "https://www.wildberries.ru/__internal/u-search/exactmatch/sng/common/v18/search",
     "https://www.wildberries.ru/__internal/u-search/exactmatch/ru/common/v13/search",
     "https://search.wb.ru/exactmatch/ru/common/v4/search",
 )
@@ -196,6 +198,8 @@ class WBClient:
             force_ipv4=force_ipv4,
         )
         self.tracker = WBPriceTracker(tracker_db) if tracker_db else None
+        self.wallet = WBWalletCalculator(transport=self.transport)
+        self._tracker_db_path = str(tracker_db) if tracker_db else "wb_prices.db"
         self._upstreams_synced = False
         if auto_sync_upstreams:
             try:
@@ -368,9 +372,60 @@ class WBClient:
         if with_price_history:
             product.price_history = self.get_price_history(nm_id)
 
+        self._attach_wallet_price(product)
         if self.tracker and product.price > 0:
             self.tracker.track_products([product])
         return product
+
+    def _attach_wallet_price(self, product: WBProduct) -> WBProduct:
+        """Compute WB Wallet discounted price when base price > 0."""
+        if product.price <= 0:
+            return product
+        try:
+            res = self.wallet.calculate(product.price)
+            if res.applied:
+                product.wallet_price = res.wallet_price
+                product.wallet_discount_pct = res.discount_pct
+        except Exception as exc:
+            logger.debug(f"Wallet discount skipped for nm={product.id}: {exc}")
+        return product
+
+    def wallet_price(self, price: float, *, use_club: bool = False) -> WalletPriceResult:
+        """Calculate discounted price with WB Wallet (`WB Кошелёк` / `ВБ Клуб`)."""
+        return self.wallet.calculate(price, use_club=use_club)
+
+    def check_rank(
+        self,
+        nm_id_or_url: Union[int, str],
+        query: str,
+        *,
+        max_pages: int = 3,
+        sort: str = "popular",
+    ):
+        """Find product search position across `1..max_pages` pages and store history in SQLite."""
+        from wb_parser.rank import WBRankTracker
+        tracker = WBRankTracker(self, db_path=self._tracker_db_path)
+        return tracker.check_rank(nm_id_or_url, query, max_pages=max_pages, sort=sort)
+
+    def analyze_reviews(
+        self,
+        url_or_nm_id: Union[str, int],
+        *,
+        only_this_color: bool = True,
+        limit: int = 100,
+        ai_key: Optional[str] = None,
+        ai_base_url: str = "https://api.openai.com/v1",
+        ai_model: str = "gpt-4o-mini",
+    ):
+        """Extract buyer reviews via CDN + feedbacks1/2 and generate pros/cons/size summary."""
+        from wb_parser.reviews import SmartReviewAnalyzer
+        analyzer = SmartReviewAnalyzer(self)
+        summary = analyzer.fetch_reviews(url_or_nm_id, only_this_color=only_this_color, limit=limit)
+        if ai_key:
+            summary = analyzer.summarize_with_llm(
+                summary, api_key=ai_key, base_url=ai_base_url, model=ai_model
+            )
+        return summary
 
     def _paginate_catalog(
         self,
@@ -408,6 +463,7 @@ class WBClient:
                         pass
                 if with_feedbacks and prod.root > 0:
                     _apply_feedback_to_product(prod, self.get_feedbacks(prod.root))
+                self._attach_wallet_price(prod)
                 results.append(prod)
                 added_on_page += 1
                 if len(results) >= limit:
@@ -418,6 +474,35 @@ class WBClient:
         if self.tracker and results:
             self.tracker.track_products(results)
         return results
+
+    def fetch_search_page(
+        self,
+        query: str,
+        *,
+        page: int = 1,
+        sort: str = "popular",
+    ) -> List[WBProduct]:
+        """Fetch a single search result page with enriched CDN/wallet metadata."""
+        self._ensure_upstreams()
+        params = {
+            "appType": 1,
+            "curr": self.currency,
+            "dest": self.dest,
+            "lang": self.lang,
+            "query": query,
+            "resultset": "catalog",
+            "sort": sort,
+            "spp": 30,
+            "page": page,
+        }
+        payload = self._get_json_with_fallbacks(SEARCH_ENDPOINTS, params=params)
+        raw_items = _extract_products_list(payload)
+        items: List[WBProduct] = []
+        for raw in raw_items:
+            prod = _enrich_product_urls(self.router, WBProduct.model_validate(raw), lang=self.lang)
+            self._attach_wallet_price(prod)
+            items.append(prod)
+        return items
 
     def search(
         self,
@@ -577,6 +662,8 @@ class AsyncWBClient:
         )
         self._sem = asyncio.Semaphore(max(1, int(concurrency)))
         self.tracker = WBPriceTracker(tracker_db) if tracker_db else None
+        self.wallet = WBWalletCalculator(transport=self.transport)
+        self._tracker_db_path = str(tracker_db) if tracker_db else "wb_prices.db"
         self._upstreams_synced = False
 
     async def __aenter__(self) -> "AsyncWBClient":

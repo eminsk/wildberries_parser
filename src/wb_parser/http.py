@@ -99,6 +99,8 @@ class BaseWBTransport:
         )
         self.cookies_dict = parse_cookie_header(cookies)
         self.wbaas_token = wbaas_token.strip() if wbaas_token and wbaas_token.strip() else None
+        if self.wbaas_token:
+            self.cookies_dict.setdefault("x_wbaas_token", self.wbaas_token)
         self.timeout = float(timeout)
         self.max_retries = max(1, int(max_retries))
         self.force_ipv4 = bool(force_ipv4)
