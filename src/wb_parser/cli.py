@@ -69,6 +69,123 @@ def _add_network_args(subparser: argparse.ArgumentParser, *, db_default: Optiona
     subparser.add_argument("--db", default=db_default, help="SQLite price history path")
 
 
+def _handle_ai_command(args: argparse.Namespace) -> int:
+    """Handle `wb-parser ai` (Free g4f/Ollama + Paid OpenAI/DeepSeek/OpenRouter/ProxyAPI/Groq)."""
+    from wb_parser.ai import (
+        fetch_g4f_provider_models,
+        find_ai_provider,
+        generate_completion,
+        is_g4f_available,
+        list_ai_providers,
+        quick_scan_ai_providers,
+        test_ai_provider,
+    )
+
+    if args.quick_scan:
+        results = quick_scan_ai_providers(timeout=min(args.timeout, 8.0))
+        if args.json:
+            print(json.dumps([r.model_dump() for r in results], ensure_ascii=False, indent=2))
+            return 0
+        if not results:
+            print('No live g4f or configured paid providers detected. Install free AI: uv add "wb-sdk-pro[ai]"')
+            return 0
+        for r in results:
+            tag = "LIVE" if r.success else "DEAD"
+            detail = r.response_text[:60] if r.success else f"{r.error_type}: {r.error_message}"[:70]
+            print(f"[{tag:4s}] {r.provider:<18} ({r.tier}/{r.model or 'default'}) {r.latency_seconds:>5.2f}s | {detail}")
+        return 0
+
+    if args.ask:
+        res = generate_completion(
+            args.ask,
+            mode=args.mode,
+            provider=args.provider,
+            model=args.model,
+            api_key=args.key,
+            base_url=args.url,
+            timeout=args.timeout,
+        )
+        if args.json:
+            print(res.model_dump_json(indent=2))
+        elif res.ok:
+            print(f"[{res.tier}:{res.provider}/{res.model} in {res.latency_seconds}s]\n{res.content}")
+        else:
+            print(f"[FAILED] {res.error}", file=sys.stderr)
+        return 0 if res.ok else 1
+
+    tier_filter = args.tier
+    if args.local:
+        tier_filter = "local"
+    elif args.paid and tier_filter == "all":
+        tier_filter = "paid"
+
+    if args.list or (not args.provider):
+        items = list_ai_providers(
+            tier=tier_filter,
+            only_working=args.working,
+            only_free=args.free,
+            search_query=args.search,
+        )
+        if args.json:
+            print(json.dumps({
+                "g4f_installed": is_g4f_available(),
+                "count": len(items),
+                "providers": [p.model_dump() for p in items],
+            }, ensure_ascii=False, indent=2))
+            return 0
+        print(f"AI Providers ({len(items)}) | g4f installed: {is_g4f_available()}")
+        for p in items:
+            auth_flag = "KEY" if p.needs_auth else "FREE"
+            cfg_flag = "ready" if p.configured else "needs-key"
+            print(
+                f"{p.index:3d}. [{p.tier:<6s}|{auth_flag:<4s}|{cfg_flag:<9s}] "
+                f"{p.id:<18s} model={p.default_model or '-'}"
+            )
+        if not is_g4f_available():
+            print('Tip: install free key-less AI providers via: uv add "wb-sdk-pro[ai]"')
+        return 0
+
+    info = find_ai_provider(args.provider)
+    if not info:
+        print(f"Error: AI provider {args.provider!r} not found.", file=sys.stderr)
+        return 1
+
+    if args.test:
+        res = test_ai_provider(
+            info.id,
+            mode=args.mode,
+            model=args.model,
+            api_key=args.key,
+            base_url=args.url,
+            prompt=args.prompt,
+            timeout=args.timeout,
+        )
+        if args.json:
+            print(res.model_dump_json(indent=2))
+        elif res.success:
+            print(f"[OK] {res.provider} ({res.model}) in {res.latency_seconds}s -> {res.response_text}")
+        else:
+            print(f"[FAIL] {res.provider}: {res.error_type}: {res.error_message}")
+            if res.hint:
+                print(f"Hint: {res.hint}")
+        return 0 if res.success else 1
+
+    models = (
+        fetch_g4f_provider_models(info.id, timeout=min(args.timeout, 5.0))
+        if info.backend == "g4f"
+        else info.models
+    )
+    if args.json:
+        print(json.dumps({**info.model_dump(), "models": models}, ensure_ascii=False, indent=2))
+    else:
+        print(f"Provider: {info.id} ({info.name}) | backend={info.backend} | tier={info.tier}")
+        print(f"Default model: {info.default_model or '-'} | auth_required={info.needs_auth} | configured={info.configured}")
+        if info.base_url or info.url:
+            print(f"URL: {info.base_url or info.url}")
+        print(f"Models ({len(models)}): {', '.join(models[:30]) or '(dynamic / pass --model)'}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         try:
@@ -80,7 +197,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         prog="wb-parser",
         description=(
             f"WB SDK Pro v{__version__} — CDN Card Inspector, Feedbacks1/2 Sharder, "
-            "WB Wallet Calculator, Rank Tracker, Smart Reviews, Search, MCP & GUI"
+            "WB Wallet Calculator, Rank Tracker, Smart Reviews, Free/Paid AI, Search, MCP & GUI"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
@@ -155,21 +272,46 @@ def main(argv: Optional[List[str]] = None) -> int:
     _add_network_args(rank_p)
 
     # 9. reviews
-    rev_p = subparsers.add_parser("reviews", help="Smart Review Analyzer (pros/cons/size fit via CDN + feedbacks1/2)")
+    rev_p = subparsers.add_parser("reviews", help="Smart Review Analyzer (offline NLP, free g4f/Ollama, or paid LLM)")
     rev_p.add_argument("target", help="Product URL or numeric nm_id")
     rev_p.add_argument("--all-colors", action="store_true", help="Analyze all linked colors (root_id) instead of single nm_id")
     rev_p.add_argument("-n", "--limit", type=int, default=100, help="Max reviews to inspect")
-    rev_p.add_argument("--ai-key", default=None, help="Optional OpenAI-compatible API key for LLM summary")
-    rev_p.add_argument("--ai-url", default="https://api.openai.com/v1", help="OpenAI-compatible base URL")
-    rev_p.add_argument("--ai-model", default="gpt-4o-mini", help="Model name (default: gpt-4o-mini)")
+    rev_p.add_argument("--mode", default="auto", choices=["auto", "free", "paid", "local", "offline"], help="AI mode (default: auto)")
+    rev_p.add_argument("--provider", default=None, help="AI provider (e.g. Pollinations, Cerebras, g4f, ollama, openai, deepseek, openrouter, proxyapi, groq)")
+    rev_p.add_argument("--ai-key", default=None, help="Optional API key for paid OpenAI-compatible providers")
+    rev_p.add_argument("--ai-url", default=None, help="Optional custom OpenAI-compatible base URL")
+    rev_p.add_argument("--ai-model", default=None, help="Model name (auto-selected per provider if omitted)")
+    rev_p.add_argument("--ai-timeout", type=float, default=25.0, help="AI completion timeout in seconds")
     rev_p.add_argument("-o", "--output", help="Save summary JSON file")
     _add_network_args(rev_p)
 
-    # 10. mcp
+    # 10. ai
+    ai_p = subparsers.add_parser("ai", help="Discover, health-check, and query Free (g4f/Ollama) & Paid AI providers")
+    ai_p.add_argument("--list", action="store_true", help="List available free & paid AI providers")
+    ai_p.add_argument("--tier", default="all", choices=["all", "free", "paid", "local", "g4f"], help="Provider tier filter")
+    ai_p.add_argument("--working", action="store_true", help="Show only working g4f/active providers")
+    ai_p.add_argument("--free", action="store_true", help="Filter strictly zero-key providers")
+    ai_p.add_argument("--paid", action="store_true", help="Filter paid/key-based providers")
+    ai_p.add_argument("--local", action="store_true", help="Filter local key-free providers (Ollama, LM Studio)")
+    ai_p.add_argument("--search", default="", help="Search providers by name or URL")
+    ai_p.add_argument("-p", "--provider", default=None, help="Select provider by index, slug, or g4f name")
+    ai_p.add_argument("--models", action="store_true", help="Show supported models for --provider")
+    ai_p.add_argument("-t", "--test", action="store_true", help="Run latency/error health-check on provider/model")
+    ai_p.add_argument("--quick-scan", action="store_true", help="Quick-scan popular free g4f + configured paid providers")
+    ai_p.add_argument("--ask", default=None, help="Send a prompt using free, local, or paid models")
+    ai_p.add_argument("--mode", default="auto", choices=["auto", "free", "paid", "local"], help="Execution mode (auto, free, paid, local)")
+    ai_p.add_argument("-m", "--model", default=None, help="Specific AI model name")
+    ai_p.add_argument("--key", default=None, help="Optional API key for paid endpoint")
+    ai_p.add_argument("--url", default=None, help="Optional OpenAI-compatible base URL")
+    ai_p.add_argument("--prompt", default="Ответь одним словом: Работает", help="Health-check test prompt")
+    ai_p.add_argument("--timeout", type=float, default=12.0, help="Timeout in seconds")
+    ai_p.add_argument("--json", action="store_true", help="Emit structured JSON output")
+
+    # 11. mcp
     mcp_p = subparsers.add_parser("mcp", help="Start native JSON-RPC 2.0 MCP Server over stdio")
     _add_network_args(mcp_p, db_default=None)
 
-    # 11. gui
+    # 12. gui
     subparsers.add_parser("gui", help="Launch Dark-Themed 7-Tab WB SDK Pro Desktop GUI (requires [gui] extra)")
 
     args = parser.parse_args(argv)
@@ -192,6 +334,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         srv.run_stdio()
         return 0
+
+    if args.command == "ai":
+        return _handle_ai_command(args)
 
     if args.command == "drops":
         tracker = WBPriceTracker(args.db)
@@ -250,6 +395,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 ai_key=args.ai_key,
                 ai_base_url=args.ai_url,
                 ai_model=args.ai_model,
+                ai_mode=args.mode,
+                ai_provider=args.provider,
+                ai_timeout=args.ai_timeout,
             )
             print(f"[{summary.nm_id}] {summary.product_name} (root={summary.root_id}, shard=feedbacks{summary.shard})")
             print(f"Analyzed: {summary.total_analyzed} / {summary.total_available} | Avg: {summary.avg_rating} | Mode: {summary.summary_mode}")

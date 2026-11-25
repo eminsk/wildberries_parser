@@ -5,31 +5,21 @@ Features:
 - Resolves `nm_id` -> `root_id` via CDN `card.json` (`imt_id`) without relying on blocked `card.wb.ru`.
 - Automatically targets the exact feedback shard (`feedbacks1` vs `feedbacks2`) using `root_id % 100 >= 50`.
 - Parses structured `pros` (Достоинства), `cons` (Недостатки), `text`, `matchingSize`, and ratings.
-- Provides a Zero-API Offline NLP Summarizer (pros/cons frequency clustering + size fit analysis)
-  AND an optional lightweight OpenAI-compatible LLM summarizer (`OPENAI_API_KEY` / ProxyAPI / DeepSeek / Ollama).
+- Provides a Zero-API Offline NLP Summarizer (pros/cons frequency clustering + size fit analysis),
+  Free AI via `g4f` / local `Ollama` (`wb-sdk-pro[ai]`), AND Paid/Hybrid OpenAI-compatible
+  LLMs (`OpenAI`, `DeepSeek`, `OpenRouter`, `ProxyAPI`, `Groq`, `Gemini`).
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
 from collections import Counter
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
-
-try:
-    import httpx
-except ImportError:  # pragma: no cover
-    httpx = None  # type: ignore[assignment]
-
-try:
-    import requests
-except ImportError:  # pragma: no cover
-    requests = None  # type: ignore[assignment]
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from wb_parser._model import BaseModel, ConfigDict, Field
-
+from wb_parser.ai import _detect_any_paid_env, generate_completion, parse_json_payload
 from wb_parser.shards import calculate_feedback_shard, extract_nm_id
 
 if TYPE_CHECKING:
@@ -76,6 +66,8 @@ class ReviewSummary(BaseModel):
     reviews: List[ReviewItem] = Field(default_factory=list)
     ai_summary: Optional[Dict[str, List[str]]] = None
     summary_mode: str = "offline"
+    ai_provider: str = ""
+    ai_model: str = ""
 
 
 def _extract_phrases(texts: List[str], top_k: int = 5) -> List[str]:
@@ -255,16 +247,30 @@ class SmartReviewAnalyzer:
         summary: ReviewSummary,
         *,
         api_key: Optional[str] = None,
-        base_url: str = "https://api.openai.com/v1",
-        model: str = "gpt-4o-mini",
+        base_url: Optional[str] = None,
+        model: Optional[str] = None,
+        mode: Optional[str] = None,
+        provider: Optional[str] = None,
         timeout: float = 25.0,
     ) -> ReviewSummary:
         """
-        Optionally enrich a `ReviewSummary` using any OpenAI-compatible Chat Completions endpoint
-        (OpenAI, ProxyAPI, DeepSeek, OpenRouter, Ollama). Leaves offline summary intact on failure.
+        Optionally enrich a `ReviewSummary` using either Free (`g4f` / local `Ollama`),
+        Hybrid (`OpenRouter` `:free` / `Groq` / `Gemini`), or Paid (`OpenAI` / `DeepSeek` /
+        `ProxyAPI` / custom OpenAI-compatible) LLM backends.
+        Leaves offline summary intact on failure or when unconfigured.
         """
-        key = (api_key or os.environ.get("OPENAI_API_KEY") or "").strip()
-        if not key or not summary.reviews:
+        if not summary.reviews:
+            return summary
+
+        eff_mode = (mode or os.environ.get("WB_AI_MODE") or "auto").strip().lower()
+        eff_provider = (provider or os.environ.get("WB_AI_PROVIDER") or "").strip() or None
+        eff_model = (model or os.environ.get("WB_AI_MODEL") or "").strip() or None
+        eff_url = (base_url or os.environ.get("WB_AI_BASE_URL") or "").strip() or None
+        eff_key = (api_key or "").strip() or None
+
+        if eff_mode == "offline":
+            return summary
+        if eff_mode == "auto" and not any((eff_key, eff_provider, eff_url, _detect_any_paid_env())):
             return summary
 
         snippets = []
@@ -287,28 +293,22 @@ class SmartReviewAnalyzer:
             "Отзывы:\n" + "\n".join(snippets)
         )
 
-        endpoint = base_url.rstrip("/") + "/chat/completions"
-        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-        }
+        res = generate_completion(
+            prompt,
+            mode=eff_mode,
+            provider=eff_provider,
+            model=eff_model,
+            api_key=eff_key,
+            base_url=eff_url,
+            temperature=0.2,
+            timeout=timeout,
+        )
+        if not res.ok:
+            logger.warning(f"LLM review summarization skipped ({res.error}); using offline summary.")
+            return summary
+
         try:
-            if httpx is not None:
-                with httpx.Client(timeout=timeout) as http:
-                    resp = http.post(endpoint, headers=headers, json=payload)
-                    resp.raise_for_status()
-                    body = resp.json()
-            elif requests is not None:
-                resp = requests.post(endpoint, headers=headers, json=payload, timeout=timeout)
-                resp.raise_for_status()
-                body = resp.json()
-            else:
-                raise RuntimeError("Install `httpx` or `requests` to call OpenAI-compatible endpoints")
-            raw_content = body["choices"][0]["message"]["content"]
-            m = re.search(r"\{.*\}", raw_content, re.DOTALL)
-            parsed = json.loads(m.group(0) if m else raw_content)
+            parsed = parse_json_payload(res.content)
             plus = [str(x).strip() for x in (parsed.get("plus") or []) if str(x).strip()]
             minus = [str(x).strip() for x in (parsed.get("minus") or []) if str(x).strip()]
             summary.ai_summary = {"plus": plus, "minus": minus}
@@ -316,7 +316,9 @@ class SmartReviewAnalyzer:
                 summary.top_pros = plus
             if minus:
                 summary.top_cons = minus
-            summary.summary_mode = f"llm:{model}"
+            summary.ai_provider = res.provider
+            summary.ai_model = res.model
+            summary.summary_mode = f"{res.tier}:{res.provider}/{res.model}"
         except Exception as exc:
-            logger.warning(f"LLM review summarization skipped ({exc}); using offline summary.")
+            logger.warning(f"LLM review JSON parse skipped ({exc}); using offline summary.")
         return summary

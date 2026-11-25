@@ -5,7 +5,7 @@ Modular, thread-safe CustomTkinter interface (optional `[gui]` extra) supporting
 - Parser tab: URL/nm_id/seller/search targets, price/discount/rating/keyword filters, 24/7 loop
 - Catalog feed: live cards, WB Wallet checkout price, price-drop badges, Excel/CSV/JSON export
 - Search Rank Tracker tab: batch `nm_id : query` checks across pages 1..N with SQLite deltas & .xlsx
-- Smart Review Analyzer tab: exact-color or root_id review pros/cons/size fit (offline or LLM API)
+- Smart Review Analyzer tab: exact-color or root_id review pros/cons/size fit (offline, free g4f, Ollama, or paid OpenAI/DeepSeek/OpenRouter/ProxyAPI + live ⚡ AI Health Check)
 - Proxy & Session tab: regional `dest`, HTTP/SOCKS5 proxy, rotation URL, cookies/wbaas, CDN ping
 - Decoupled Telegram alerts & live execution Logs tab
 """
@@ -33,6 +33,7 @@ except ImportError:  # pragma: no cover
     ctk = None
 
 from wb_parser import __version__
+from wb_parser.ai import AI_PROVIDER_PRESETS, test_ai_provider
 from wb_parser.client import WBClient, filter_products
 from wb_parser.config import DEFAULT_DEST, DEST_CODES, ISSUES_URL, TELEGRAM_CHANNEL_URL
 from wb_parser.exceptions import WBAntiBotError
@@ -91,8 +92,11 @@ class WBGUIConfig:
         self.rank_pages: int = 3
         self.review_target: str = "141217830"
         self.review_only_color: bool = True
+        self.review_ai_mode: str = "auto"
+        self.review_ai_provider: str = "Auto Free Pool (g4f)"
+        self.review_ai_model: str = ""
         self.review_ai_key: str = ""
-        self.review_ai_url: str = "https://api.openai.com/v1"
+        self.review_ai_url: str = ""
 
     @classmethod
     def load(cls) -> "WBGUIConfig":
@@ -542,13 +546,85 @@ class WBGUIApp:
         self.btn_review_run.pack(side="right", pady=(12, 0))
 
         row2 = ctk.CTkFrame(top, fg_color="transparent")
-        row2.pack(fill="x", padx=12, pady=(0, 10))
+        row2.pack(fill="x", padx=12, pady=(0, 6))
+
+        mode_box = ctk.CTkFrame(row2, fg_color="transparent")
+        mode_box.pack(side="left", padx=4)
+        ctk.CTkLabel(mode_box, text="Режим AI", font=ctk.CTkFont(size=11), text_color="#94a3b8").pack(anchor="w")
+        self._ai_mode_labels = {
+            "Авто (Ключ → Free → Оффлайн)": "auto",
+            "Бесплатно (g4f)": "free",
+            "Платный API (Key)": "paid",
+            "Локальный (Ollama)": "local",
+            "Оффлайн (Без AI)": "offline",
+        }
+        self._ai_mode_by_code = {v: k for k, v in self._ai_mode_labels.items()}
+        self.opt_review_ai_mode = ctk.CTkOptionMenu(
+            mode_box,
+            values=list(self._ai_mode_labels.keys()),
+            width=215,
+            command=self._on_ai_mode_selected,
+        )
+        self.opt_review_ai_mode.pack()
+
+        prov_box = ctk.CTkFrame(row2, fg_color="transparent")
+        prov_box.pack(side="left", padx=4)
+        ctk.CTkLabel(prov_box, text="Провайдер (Free / Paid)", font=ctk.CTkFont(size=11), text_color="#94a3b8").pack(anchor="w")
+        self._ai_provider_map = {
+            "Auto Free Pool (g4f)": "g4f",
+            "g4f: Pollinations": "Pollinations",
+            "g4f: Airforce": "Airforce",
+            "g4f: Cerebras": "Cerebras",
+            "g4f: BlackboxPro": "BlackboxPro",
+            "g4f: DeepInfra": "DeepInfra",
+            "OpenAI (Paid)": "openai",
+            "DeepSeek (Paid)": "deepseek",
+            "OpenRouter (Free + Paid)": "openrouter",
+            "ProxyAPI (RU Paid)": "proxyapi",
+            "Groq (Free/Paid)": "groq",
+            "Google Gemini": "gemini",
+            "Ollama (Local Free)": "ollama",
+            "LM Studio (Local Free)": "lmstudio",
+        }
+        self.opt_review_ai_provider = ctk.CTkOptionMenu(
+            prov_box,
+            values=list(self._ai_provider_map.keys()),
+            width=210,
+            command=self._on_ai_provider_selected,
+        )
+        self.opt_review_ai_provider.pack()
+
+        self.entry_review_ai_model = self._make_labeled_entry(
+            row2, "Модель (опц. / авто)", "авто по провайдеру (gpt-4o-mini, deepseek-chat...)", expand=True
+        )
+
+        self.btn_review_ai_test = ctk.CTkButton(
+            row2,
+            text="⚡ Проверить AI",
+            width=145,
+            height=30,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            command=self._test_review_ai,
+        )
+        self.btn_review_ai_test.pack(side="right", padx=(8, 4), pady=(14, 0))
+
+        row3 = ctk.CTkFrame(top, fg_color="transparent")
+        row3.pack(fill="x", padx=12, pady=(0, 8))
         self.entry_review_ai_key = self._make_labeled_entry(
-            row2, "OpenAI / DeepSeek / ProxyAPI Key (опционально — без ключа работает быстрый оффлайн-анализ)", "sk-...", expand=True
+            row3, "API Key (нужен только для платных — для Free g4f / Ollama оставьте пустым)", "sk-... или пусто для Free", expand=True
         )
         self.entry_review_ai_url = self._make_labeled_entry(
-            row2, "API Base URL (опц.)", "https://api.openai.com/v1", width=260
+            row3, "API Base URL (автоподстановка для пресетов)", "https://api.openai.com/v1 или http://localhost:11434/v1", width=290
         )
+
+        self.lbl_review_ai_status = ctk.CTkLabel(
+            top,
+            text="💡 Поддерживаются бесплатные модели g4f (extra [ai]), локальный Ollama и платные API (OpenAI, DeepSeek, OpenRouter, ProxyAPI, Groq).",
+            font=ctk.CTkFont(size=11),
+            text_color="#94a3b8",
+        )
+        self.lbl_review_ai_status.pack(anchor="w", padx=16, pady=(0, 8))
 
         # KPI & Pros/Cons Split
         self.lbl_review_kpi = ctk.CTkLabel(
@@ -713,6 +789,11 @@ class WBGUIApp:
         self.entry_rank_pages.insert(0, str(cfg.rank_pages))
         self.entry_review_target.insert(0, cfg.review_target)
         self.var_review_color.set(cfg.review_only_color)
+        mode_label = self._ai_mode_by_code.get(cfg.review_ai_mode, "Авто (Ключ → Free → Оффлайн)")
+        self.opt_review_ai_mode.set(mode_label)
+        if cfg.review_ai_provider in self._ai_provider_map:
+            self.opt_review_ai_provider.set(cfg.review_ai_provider)
+        self.entry_review_ai_model.insert(0, cfg.review_ai_model)
         self.entry_review_ai_key.insert(0, cfg.review_ai_key)
         self.entry_review_ai_url.insert(0, cfg.review_ai_url)
 
@@ -746,8 +827,11 @@ class WBGUIApp:
         cfg.rank_pages = int(self.entry_rank_pages.get().strip() or 3)
         cfg.review_target = self.entry_review_target.get().strip()
         cfg.review_only_color = bool(self.var_review_color.get())
+        cfg.review_ai_mode = self._ai_mode_labels.get(self.opt_review_ai_mode.get(), "auto")
+        cfg.review_ai_provider = self.opt_review_ai_provider.get()
+        cfg.review_ai_model = self.entry_review_ai_model.get().strip()
         cfg.review_ai_key = self.entry_review_ai_key.get().strip()
-        cfg.review_ai_url = self.entry_review_ai_url.get().strip() or "https://api.openai.com/v1"
+        cfg.review_ai_url = self.entry_review_ai_url.get().strip()
         cfg.save()
         return cfg
 
@@ -1046,11 +1130,62 @@ class WBGUIApp:
             rank_results_to_excel(self.rank_results, path)
             self._log(f"Позиции экспортированы в Excel: {path}")
 
+    def _on_ai_mode_selected(self, label: str) -> None:
+        code = self._ai_mode_labels.get(label, "auto")
+        if code == "local":
+            self.opt_review_ai_provider.set("Ollama (Local Free)")
+            self._on_ai_provider_selected("Ollama (Local Free)")
+        elif code == "free" and self.opt_review_ai_provider.get() in (
+            "OpenAI (Paid)", "DeepSeek (Paid)", "ProxyAPI (RU Paid)"
+        ):
+            self.opt_review_ai_provider.set("Auto Free Pool (g4f)")
+
+    def _on_ai_provider_selected(self, label: str) -> None:
+        slug = self._ai_provider_map.get(label, "")
+        preset = AI_PROVIDER_PRESETS.get(slug)
+        self.entry_review_ai_url.delete(0, "end")
+        if preset:
+            self.entry_review_ai_url.insert(0, str(preset["base_url"]))
+            if not self.entry_review_ai_model.get().strip():
+                self.entry_review_ai_model.configure(placeholder_text=f"по умолч.: {preset['default_model']}")
+        else:
+            self.entry_review_ai_model.configure(placeholder_text="авто по g4f-провайдеру")
+
+    def _test_review_ai(self) -> None:
+        cfg = self._save_ui_to_config()
+        provider_id = self._ai_provider_map.get(cfg.review_ai_provider, cfg.review_ai_provider)
+        self.btn_review_ai_test.configure(state="disabled")
+        self.lbl_review_ai_status.configure(text="⏳ Проверка AI-провайдера...", text_color="#facc15")
+
+        def worker() -> None:
+            res = test_ai_provider(
+                provider_id,
+                mode=cfg.review_ai_mode,
+                model=cfg.review_ai_model or None,
+                api_key=cfg.review_ai_key or None,
+                base_url=cfg.review_ai_url or None,
+                timeout=12.0,
+            )
+            if res.success:
+                msg = f"✅ {res.provider} ({res.tier}/{res.model or 'default'}) • {res.latency_seconds}s: {res.response_text[:70]}"
+                color = "#4ade80"
+            else:
+                hint = f" — {res.hint}" if res.hint else ""
+                msg = f"❌ {res.provider} [{res.error_type}]: {res.error_message[:75]}{hint}"
+                color = "#f87171"
+            self.root.after(0, lambda: self.lbl_review_ai_status.configure(text=msg, text_color=color))
+            self.root.after(0, lambda: self.btn_review_ai_test.configure(state="normal"))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     def _run_review_analysis(self) -> None:
         cfg = self._save_ui_to_config()
         if not cfg.review_target:
             self._log("[!] Введите артикул или ссылку во вкладке «Умные отзывы».")
             return
+
+        provider_id = self._ai_provider_map.get(cfg.review_ai_provider, cfg.review_ai_provider)
+        base_url_arg = (cfg.review_ai_url or None) if provider_id in AI_PROVIDER_PRESETS else None
 
         self.btn_review_run.configure(state="disabled")
         self.lbl_review_kpi.configure(text="⏳ Загрузка карточки с CDN и отзывов с feedbacks1/2...")
@@ -1063,7 +1198,10 @@ class WBGUIApp:
                         only_this_color=cfg.review_only_color,
                         limit=120,
                         ai_key=cfg.review_ai_key or None,
-                        ai_base_url=cfg.review_ai_url,
+                        ai_base_url=base_url_arg,
+                        ai_model=cfg.review_ai_model or None,
+                        ai_mode=cfg.review_ai_mode,
+                        ai_provider=provider_id,
                     )
                 self.root.after(0, lambda: self._render_review_summary(summary))
             except Exception as exc:

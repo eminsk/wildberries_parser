@@ -414,18 +414,90 @@ class WBClient:
         only_this_color: bool = True,
         limit: int = 100,
         ai_key: Optional[str] = None,
-        ai_base_url: str = "https://api.openai.com/v1",
-        ai_model: str = "gpt-4o-mini",
+        ai_base_url: Optional[str] = None,
+        ai_model: Optional[str] = None,
+        ai_mode: Optional[str] = None,
+        ai_provider: Optional[str] = None,
+        ai_timeout: float = 25.0,
     ):
-        """Extract buyer reviews via CDN + feedbacks1/2 and generate pros/cons/size summary."""
+        """Extract buyer reviews via CDN + feedbacks1/2 and summarize (offline, free AI, local, or paid LLM)."""
         from wb_parser.reviews import SmartReviewAnalyzer
+
         analyzer = SmartReviewAnalyzer(self)
         summary = analyzer.fetch_reviews(url_or_nm_id, only_this_color=only_this_color, limit=limit)
-        if ai_key:
-            summary = analyzer.summarize_with_llm(
-                summary, api_key=ai_key, base_url=ai_base_url, model=ai_model
-            )
-        return summary
+        return analyzer.summarize_with_llm(
+            summary,
+            api_key=ai_key,
+            base_url=ai_base_url,
+            model=ai_model,
+            mode=ai_mode,
+            provider=ai_provider,
+            timeout=ai_timeout,
+        )
+
+    def list_ai_providers(
+        self,
+        *,
+        tier: str = "all",
+        only_working: bool = False,
+        only_free: bool = False,
+        search_query: str = "",
+    ):
+        """List available Free (`g4f` / local Ollama) and Paid (`OpenAI` / `DeepSeek` / etc.) AI providers."""
+        from wb_parser.ai import list_ai_providers
+
+        return list_ai_providers(
+            tier=tier,
+            only_working=only_working,
+            only_free=only_free,
+            search_query=search_query,
+        )
+
+    def test_ai_provider(
+        self,
+        provider: Optional[str] = None,
+        *,
+        mode: str = "auto",
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        timeout: float = 12.0,
+    ):
+        """Run a health-check benchmark on a free or paid AI provider."""
+        from wb_parser.ai import test_ai_provider
+
+        return test_ai_provider(
+            provider,
+            mode=mode,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout,
+        )
+
+    def ask_ai(
+        self,
+        prompt: str,
+        *,
+        mode: Optional[str] = None,
+        provider: Optional[str] = None,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        timeout: float = 25.0,
+    ):
+        """Generate an AI completion via Free (`g4f`/Ollama) or Paid LLM providers."""
+        from wb_parser.ai import generate_completion
+
+        return generate_completion(
+            prompt,
+            mode=mode,
+            provider=provider,
+            model=model,
+            api_key=api_key,
+            base_url=base_url,
+            timeout=timeout,
+        )
 
     def _paginate_catalog(
         self,

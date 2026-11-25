@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wb-sdk-pro"
-version = "2.2.1"
-description = "All-in-One Wildberries Sync/Async SDK, 11-command CLI, 8-tool MCP Server & optional Desktop GUI ([gui]): CDN card extraction, feedbacks1/2 sharding, WB Wallet & WB Club pricing, Search Rank Tracker, Smart Review Analyzer, and Excel/CSV/JSON export"
+version = "2.3.0"
+description = "All-in-One Wildberries Sync/Async SDK, 12-command CLI, 9-tool MCP Server, Free/Paid AI (g4f, Ollama, OpenAI, DeepSeek, OpenRouter) & optional Desktop GUI ([gui]): CDN card extraction, feedbacks1/2 sharding, WB Wallet & Club pricing, Rank Tracker, and Smart Reviews"
 readme = "README.md"
 authors = [
     { name = "eminsk", email = "M_N_Nik@yahoo.com" },
@@ -26,6 +26,12 @@ keywords = [
     "wb-rank",
     "wb-smart-review",
     "wb-wallet",
+    "g4f",
+    "free-ai",
+    "openai",
+    "deepseek",
+    "openrouter",
+    "ollama",
     "no-gil",
     "pypy",
 ]
@@ -58,6 +64,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ai = [
+    "g4f>=0.4.0",
+]
+free-ai = [
+    "g4f>=0.4.0",
+]
 tls = [
     "curl-cffi>=0.7.0",
 ]
@@ -77,6 +89,7 @@ all = [
     "customtkinter>=5.2.0",
     "pillow>=10.0.0",
     "pandas>=2.0.0",
+    "g4f>=0.4.0",
 ]
 
 [dependency-groups]

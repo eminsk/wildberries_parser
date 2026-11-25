@@ -7,7 +7,8 @@ and optional 7-Tab CustomTkinter Desktop GUI (`wb-gui`) for:
 - Sharded review extraction & analytics (`feedbacks1`/`feedbacks2` via `root_id % 100 >= 50`)
 - Live WB Wallet & WB Club discount calculation (`WB Кошелёк` / `ВБ Клуб`)
 - Multi-page Search Rank Tracking with SQLite history deltas
-- Smart Review Analyzer (offline pros/cons/size-fit + optional OpenAI-compatible LLM)
+- Smart Review Analyzer & Hybrid AI Engine: Offline NLP, Free zero-key AI (`g4f` / local `Ollama`),
+  Hybrid (`OpenRouter` `:free` / `Groq` / `Gemini`), and Paid APIs (`OpenAI` / `DeepSeek` / `ProxyAPI`)
 - SQLite price-drop tracking, Telegram notifications, and Excel/CSV/JSON/JSONL/DataFrame exports
 
 Supports CPython 3.8-3.16, PyPy 3.8-3.12, and Free-Threaded No-GIL (3.13t-3.16t).
@@ -15,7 +16,22 @@ Supports CPython 3.8-3.16, PyPy 3.8-3.12, and Free-Threaded No-GIL (3.13t-3.16t)
 
 from __future__ import annotations
 
-__version__ = "2.2.1"
+__version__ = "2.3.0"
+
+from wb_parser.ai import (
+    AI_PROVIDER_PRESETS,
+    AIChatResult,
+    AIClient,
+    AIProviderInfo,
+    AIProviderResult,
+    FREE_G4F_CANDIDATES,
+    find_ai_provider,
+    generate_completion,
+    is_g4f_available,
+    list_ai_providers,
+    quick_scan_ai_providers,
+    test_ai_provider,
+)
 
 from wb_parser.client import AsyncWBClient, ParseWB, WBClient, filter_products
 from wb_parser.config import DEST_CODES, DEFAULT_DEST, WBConfig
@@ -55,12 +71,18 @@ from wb_parser.wallet import WBWalletCalculator, WalletPriceResult, WalletSettin
 
 __all__ = [
     "__version__",
+    "AI_PROVIDER_PRESETS",
+    "AIChatResult",
+    "AIClient",
+    "AIProviderInfo",
+    "AIProviderResult",
     "AsyncWBClient",
     "BasketRoute",
     "BasketRouter",
     "DEFAULT_BASKET_RANGES",
     "DEFAULT_DEST",
     "DEST_CODES",
+    "FREE_G4F_CANDIDATES",
     "Feedback",
     "FeedbackInfo",
     "Item",
@@ -93,7 +115,13 @@ __all__ = [
     "extract_seller_id",
     "feedback_url",
     "filter_products",
+    "find_ai_provider",
+    "generate_completion",
+    "is_g4f_available",
+    "list_ai_providers",
+    "quick_scan_ai_providers",
     "rank_results_to_excel",
+    "test_ai_provider",
     "to_csv",
     "to_dataframe",
     "to_excel",

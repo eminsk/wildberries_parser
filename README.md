@@ -1,6 +1,6 @@
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
-  <b>All-in-One Wildberries Suite: Sync/Async SDK + CDN Engine + WB Wallet Pricing + Search Rank Tracker + Smart Review Analyzer + 11-Command CLI + 8-Tool MCP Server + 7-Tab Desktop GUI</b>
+  <b>All-in-One Wildberries Suite: Sync/Async SDK + CDN Engine + WB Wallet + Rank Tracker + Smart Reviews + Free/Paid AI (g4f / Ollama / OpenAI / DeepSeek / OpenRouter) + 12 CLI + 9 MCP Tools + 7-Tab GUI</b>
 </p>
 
 <p align="center">
@@ -9,15 +9,15 @@
 </p>
 
 [![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
-[![Release](https://img.shields.io/badge/release-v2.2.1-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.2.1)
+[![Release](https://img.shields.io/badge/release-v2.3.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.3.0)
 [![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-27%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Tests](https://img.shields.io/badge/pytest-33%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
 [![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-7%20Tabs%20%7C%20CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
-[![MCP Server](https://img.shields.io/badge/MCP-8%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
+[![MCP Server](https://img.shields.io/badge/MCP-9%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
-> **Unified 3-in-1 Wildberries Architecture** upgrading and merging `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` into one pure-Python, thread-safe Sync/Async SDK, 11-command CLI (`wb-parser` / `wb-sdk`), 8-tool MCP Server (`wb-mcp`), and optional 7-tab Desktop GUI (`wb-gui`).
+> **Unified 4-in-1 Wildberries Architecture** combining `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` + **`testg4f` Hybrid Free/Paid AI Engine** into one pure-Python Sync/Async SDK, 12-command CLI (`wb-parser` / `wb-sdk`), 9-tool MCP Server (`wb-mcp`), and optional 7-tab Desktop GUI (`wb-gui`).
 
 ---
 
@@ -25,7 +25,7 @@
 
 | Runtime | Versions | Status |
 |---|---|---|
-| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 27 tests pass (Win / Linux / macOS) |
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 33 tests pass (Win / Linux / macOS) |
 | **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Thread-safe (`RLock` + `wb_parser._model`) |
 | **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Pure-Python core passes without C/Rust deps |
 
@@ -42,10 +42,10 @@ Core SDK, CLI, and MCP Server install cleanly across **18 Python runtimes** usin
 | **Resilient Transport** (`wb_parser.http`) | IPv6 CDN stalls, rate limits & mobile proxy failover | `curl_cffi` Chrome TLS (`[tls]`) → `httpx[http2]` → `requests` fallback, forced IPv4, exponential backoff with jitter, HTTP/SOCKS5 proxy, MobileProxy IP rotation (`proxy_change_url`) |
 | **WB Wallet Pricing** (`wb_parser.wallet`) | Calculating real buyer checkout price with `WB Кошелёк` / `ВБ Клуб` | Fetches live `default-payment.json` + `settings-front.json` thresholds (`wlt1DiscountDisplayMaxPrice`, `pricesDeltaToShowSale`) with `geobasket` mirror, floors prices via `ROUND_FLOOR` |
 | **Search Rank Tracker** (`wb_parser.rank`) | Monitoring keyword positions across WB search (`wb_rank`) | Scans pages `1..N` (`popular`, `pricedown`, `priceup`, `rate`, `newly`), computes global rank + page slot + SQLite `rank_delta` (`▲`/`▼`), batch checks (`check_batch`), styled Excel export |
-| **Smart Review Analyzer** (`wb_parser.reviews`) | Extracting buyer pros, cons, tags & size fit (`wb_smart_review`) | Filters by exact `nm_id` color (auto-falling back to `root_id` if empty), clusters pros/cons, builds 1★–5★ distribution & `matchingSize` stats offline, or enriches via OpenAI / DeepSeek / ProxyAPI / Ollama |
+| **Smart Review & Free/Paid AI Engine** (`wb_parser.reviews`, `wb_parser.ai`) | Extracting buyer pros, cons & size fit with zero-key Free OR Paid LLMs (`wb_smart_review` + `testg4f`) | Filters by `nm_id` (fallback `root_id`), offline clustering + **Free** (`g4f` auto-fallback, `Ollama`, `LM Studio`), **Hybrid** (`OpenRouter` `:free`/paid, `Groq`, `Gemini`), **Paid** (`OpenAI`, `DeepSeek`, `ProxyAPI`) + provider health checks (`test_ai_provider`, `quick_scan`) |
 | **Price Tracker, Config & Alerts** (`tracker`, `config`, `export`, `telegram`) | Price drops, multi-format reports & Telegram monitoring | Thread-safe SQLite `wb_latest_prices` / `wb_price_history`, `.xlsx` (hyperlinks & drop highlight), UTF-8 BOM `.csv`, `.json`, `.jsonl`, `pandas.DataFrame` (`[dataframe]`), `.json`/`.toml` `WBConfig`, isolated Telegram proxy |
-| **Desktop GUI (`wb-gui`)** | Visual control center (`[gui]` extra) | Dark `CustomTkinter` UI with 7 tabs (Parser, Catalog Feed, Rank Tracker, Smart Reviews, Proxy & Session, Telegram, Logs) and `storage/gui_config.json` persistence |
-| **Native MCP Server (`wb-mcp`)** | Giving AI agents live Wildberries market intelligence | 8 JSON-RPC 2.0 tools (`2025-11-25` / `2025-06-18` / `2024-11-05`) with `structuredContent` and env config (`WB_PROXY`, `WB_COOKIES`, `WB_WBAAS_TOKEN`, `WB_TRACKER_DB`) |
+| **Desktop GUI (`wb-gui`)** | Visual control center (`[gui]` extra) | Dark `CustomTkinter` UI with 7 tabs (Parser, Catalog Feed, Rank Tracker, Smart Reviews with Free/Paid AI selector & live ⚡ check, Proxy & Session, Telegram, Logs) and `storage/gui_config.json` persistence |
+| **Native MCP Server (`wb-mcp`)** | Giving AI agents live Wildberries market intelligence | 9 JSON-RPC 2.0 tools (`2025-11-25` / `2025-06-18` / `2024-11-05`) including `wb_ai_providers`, `structuredContent`, and env vars (`WB_PROXY`, `WB_TRACKER_DB`, `WB_AI_MODE`, `WB_AI_PROVIDER`) |
 
 > **Note on WB anti-bot (WBAAS 498/403):** Direct CDN endpoints (`wbbasket.ru` `card.json`, `upstreams`, `.webp`, `price-history.json`, `feedbacks1/2.wb.ru`, and Wallet configs) work directly without proxies or cookies. Gateway search, seller catalogs, and live `__internal/u-card` checkout prices may require an RU residential/mobile proxy, `cookies`, or `x-wbaas-token`.
 
@@ -56,7 +56,7 @@ Core SDK, CLI, and MCP Server install cleanly across **18 Python runtimes** usin
 ### PyPI (`uv` / `pip`)
 
 ```bash
-# Core SDK, 11-command CLI (wb-parser / wb-sdk), and 8-tool MCP server (wb-mcp)
+# Core SDK, 12-command CLI (wb-parser / wb-sdk), and 9-tool MCP server (wb-mcp)
 uv add wb-sdk-pro
 
 # Run Desktop GUI directly without installing into your project (requires [gui] extra)
@@ -69,6 +69,9 @@ pip install wb-sdk-pro
 ### Optional Extras
 
 ```bash
+# Free zero-key AI providers via g4f (Pollinations, Airforce, Cerebras, DeepInfra, etc.)
+uv add "wb-sdk-pro[ai]"        # alias: "wb-sdk-pro[free-ai]"
+
 # 7-Tab Desktop GUI (adds customtkinter, Pillow, curl_cffi)
 uv add "wb-sdk-pro[gui]"
 
@@ -78,7 +81,7 @@ uv add "wb-sdk-pro[tls]"
 # pandas DataFrame export via to_dataframe() (adds pandas)
 uv add "wb-sdk-pro[dataframe]"   # or "wb-sdk-pro[pandas]"
 
-# Everything (GUI + Chrome TLS + pandas)
+# Everything (GUI + Free AI [g4f] + Chrome TLS + pandas)
 uv add "wb-sdk-pro[all]"
 ```
 
@@ -162,22 +165,53 @@ with WBClient(cookies="x_wbaas_token=...", proxy="http://user:pass@ip:port") as 
     rank_results_to_excel([rank], "result/ranks.xlsx")
 ```
 
-### 5. Smart Review Summary (`wb_parser.reviews`)
+### 5. Smart Review Summary & Hybrid Free / Paid AI (`wb_parser.reviews` & `wb_parser.ai`)
 
 ```python
-from wb_parser import WBClient
+from wb_parser import AIClient, WBClient, list_ai_providers, test_ai_provider
 
 with WBClient() as wb:
+    # A) Instant Zero-API offline analysis
     summary = wb.analyze_reviews(141217830, only_this_color=True, limit=100)
-    print("Ratings:", summary.rating_distribution)
-    print("Size fit:", summary.size_fit)
-    print("Tags:", summary.bables_tags)
-    print("Pros:", summary.top_pros)
-    print("Cons:", summary.top_cons)
+    print(summary.summary_mode, summary.top_pros, summary.top_cons)
 
-    # Optional OpenAI / DeepSeek / ProxyAPI / Ollama summarization:
-    # summary = wb.analyze_reviews(141217830, ai_key="sk-...", ai_base_url="https://api.openai.com/v1")
+    # B) 100% Free zero-key AI via g4f auto-fallback (`uv add "wb-sdk-pro[ai]"`)
+    free_summary = wb.analyze_reviews(141217830, ai_mode="free", ai_provider="g4f")
+
+    # C) Local Free Ollama (`http://localhost:11434/v1`, no API key required)
+    local_summary = wb.analyze_reviews(141217830, ai_mode="local", ai_provider="ollama", ai_model="llama3.2")
+
+    # D) Paid / Hybrid APIs (OpenAI, DeepSeek, OpenRouter `:free`/paid, ProxyAPI, Groq, Gemini)
+    paid_summary = wb.analyze_reviews(
+        141217830,
+        ai_mode="paid",
+        ai_provider="deepseek",      # auto-resolves https://api.deepseek.com/v1 + DEEPSEEK_API_KEY
+        ai_key="sk-...",
+    )
+
+# Provider Discovery & Health-Check (from testg4f):
+providers = list_ai_providers(tier="all")
+health = test_ai_provider("Pollinations", mode="free", timeout=10.0)
+print(health.success, health.latency_seconds, health.hint)
+
+ai = AIClient(mode="auto")  # uses paid env key if set, otherwise free g4f pool
+reply = ai.chat("Назови 3 совета для карточки на Wildberries")
+print(reply.provider, reply.tier, reply.content)
 ```
+
+Supported built-in AI presets & environment variables:
+
+| Preset Slug | Tier | Default Model | Env Variable | Base URL |
+|---|---|---|---|---|
+| `g4f` / `Pollinations`, `Cerebras`, ... | **Free** (No Key) | provider default | — *(requires `[ai]`)* | dynamic `g4f` providers |
+| `ollama` | **Local Free** | `llama3.2` | `OLLAMA_BASE_URL` | `http://localhost:11434/v1` |
+| `lmstudio` | **Local Free** | `local-model` | `LMSTUDIO_BASE_URL` | `http://localhost:1234/v1` |
+| `openrouter` | **Hybrid** (`:free` + Paid) | `deepseek/deepseek-chat-v3-0324:free` | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
+| `groq` | **Hybrid** (Free Tier + Paid) | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
+| `gemini` | **Hybrid** (Free Tier + Paid) | `gemini-2.5-flash` | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `openai` | **Paid** | `gpt-4o-mini` | `OPENAI_API_KEY` | `https://api.openai.com/v1` |
+| `deepseek` | **Paid** | `deepseek-chat` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com/v1` |
+| `proxyapi` | **Paid** (RU) | `gpt-4o-mini` | `PROXYAPI_API_KEY` | `https://api.proxyapi.ru/openai/v1` |
 
 ### 6. Config Files (`JSON` / `TOML`), Telegram Alerts & Legacy `ParseWB`
 
@@ -217,7 +251,7 @@ uv run python run_gui.py
 
 ---
 
-## 💻 CLI Commands (`wb-parser` / `wb-sdk` — 11 Subcommands)
+## 💻 CLI Commands (`wb-parser` / `wb-sdk` — 12 Subcommands)
 
 All data commands support `--dest`, `--proxy`, `--proxy-change-url`, `--cookies`, `--wbaas-token`, and `--db`:
 
@@ -237,29 +271,36 @@ uv run wb-parser seller 626520 --pages 5 --enrich -o seller.xlsx
 # 5. Calculate exact live WB Wallet (or --club) discounted price
 uv run wb-parser wallet 4990 --club
 
-# 6. Run Smart Review Analyzer (offline or --ai-key / --ai-url / --ai-model)
-uv run wb-parser reviews 141217830 --limit 60 -o reviews.json
+# 6. Run Smart Review Analyzer (offline, free g4f, local Ollama, or paid OpenAI/DeepSeek/OpenRouter)
+uv run wb-parser reviews 141217830 --mode free --limit 60 -o reviews.json
+uv run wb-parser reviews 141217830 --mode paid --provider deepseek --ai-key sk-...
 
-# 7. Track product search rank across pages (--sort popular|pricedown|priceup|rate)
+# 7. Track product search rank across pages (--sort popular|pricedown|priceup|rate|newly)
 uv run wb-parser rank 141217830 "кроссовки dunk" --pages 3 -o ranks.xlsx
 
-# 8. Check sharded feedbacks directly (--is-nm resolves nm_id -> root_id via CDN first)
-uv run wb-parser feedbacks 181851928
+# 8. Discover, health-check & query Free (g4f/Ollama) + Paid AI providers (testg4f integration)
+uv run wb-parser ai --list
+uv run wb-parser ai --quick-scan
+uv run wb-parser ai -p Pollinations --test --timeout 10
+uv run wb-parser ai --ask "Выдели плюсы товара" --mode free
 
-# 9. View SQLite price drops
+# 9. Check sharded feedbacks directly (--is-nm resolves nm_id -> root_id via CDN first)
+uv run wb-parser feedbacks 181851928 --is-nm
+
+# 10. View SQLite price drops
 uv run wb-parser drops --db wb_prices.db
 
-# 10. Start MCP JSON-RPC 2.0 server over stdio
+# 11. Start MCP JSON-RPC 2.0 server over stdio
 uv run wb-parser mcp
 
-# 11. Launch CustomTkinter Desktop GUI (requires [gui] extra)
+# 12. Launch CustomTkinter Desktop GUI (requires [gui] extra)
 uv run wb-parser gui
 ```
 
 ---
 
 <a id="mcp-server-for-ai-agents"></a>
-## 🤖 Native MCP Server (`wb-mcp` — 8 Tools)
+## 🤖 Native MCP Server (`wb-mcp` — 9 Tools)
 
 Supports MCP protocol versions `2025-11-25`, `2025-06-18`, and `2024-11-05` (`serverInfo.name = "wb-parser-mcp"`), returning structured JSON alongside readable text:
 
@@ -270,16 +311,17 @@ Supports MCP protocol versions `2025-11-25`, `2025-06-18`, and `2024-11-05` (`se
       "command": "uvx",
       "args": ["--from", "wb-sdk-pro", "wb-mcp"],
       "env": {
-        "WB_TRACKER_DB": "wb_prices.db"
+        "WB_TRACKER_DB": "wb_prices.db",
+        "WB_AI_MODE": "auto"
       }
     }
   }
 }
 ```
 
-Optional environment variables: `WB_PROXY`, `WB_PROXY_CHANGE_URL`, `WB_COOKIES`, `WB_WBAAS_TOKEN`, `WB_TRACKER_DB`.
+Optional environment variables: `WB_PROXY`, `WB_PROXY_CHANGE_URL`, `WB_COOKIES`, `WB_WBAAS_TOKEN`, `WB_TRACKER_DB`, `WB_AI_MODE`, `WB_AI_PROVIDER`, `WB_AI_MODEL`, `WB_AI_BASE_URL`, `WB_AI_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `OPENROUTER_API_KEY`, `PROXYAPI_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`.
 
-Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_catalog`, `wb_price_drops`, `wb_wallet_price`, `wb_check_rank`, `wb_smart_reviews`.
+Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_catalog`, `wb_price_drops`, `wb_wallet_price`, `wb_check_rank`, `wb_smart_reviews`, `wb_ai_providers`.
 
 ---
 
@@ -289,7 +331,7 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**27 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel/CSV exports, MCP tools & `WB_TRACKER_DB` env config, CLI, GUI config/missing-extra handling, and No-GIL thread safety.
+**33 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (12 commands), GUI config/missing-extra handling, and No-GIL thread safety.
 
 ## 📄 License
 

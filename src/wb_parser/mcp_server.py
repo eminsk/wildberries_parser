@@ -1,8 +1,9 @@
 """
 Native Model Context Protocol (MCP) Server for WB SDK Pro (`wb-mcp`).
-Exposes 8 JSON-RPC 2.0 stdio tools for Wildberries CDN card inspection, catalog search,
+Exposes 9 JSON-RPC 2.0 stdio tools for Wildberries CDN card inspection, catalog search,
 seller extraction, sharded feedback lookups, SQLite price-drop monitoring, live WB Wallet
-pricing, search rank checking, and smart review analysis.
+pricing, search rank checking, smart review analysis (Free `g4f`/Ollama & Paid APIs),
+and AI provider discovery/testing.
 """
 
 from __future__ import annotations
@@ -134,16 +135,39 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
     },
     {
         "name": "wb_smart_reviews",
-        "description": "Extract real product pros/cons, size fit stats, and rating breakdown via CDN + feedbacks1/2.",
+        "description": "Extract real product pros/cons, size fit stats, and rating breakdown via CDN + feedbacks1/2 with offline NLP, free (`g4f`/Ollama), or paid LLM summary.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "target": {"type": "string", "description": "Product URL or numeric nm_id"},
                 "only_this_color": {"type": "boolean", "default": True},
                 "limit": {"type": "integer", "default": 100},
-                "ai_key": {"type": "string", "description": "Optional OpenAI-compatible API key for LLM summarization"},
+                "ai_mode": {"type": "string", "default": "auto", "description": "AI mode: auto, free, paid, local, or offline"},
+                "ai_provider": {"type": "string", "description": "Provider slug/name (e.g. Pollinations, Cerebras, g4f, ollama, openai, deepseek, openrouter, proxyapi, groq)"},
+                "ai_model": {"type": "string", "description": "Optional AI model name"},
+                "ai_base_url": {"type": "string", "description": "Optional OpenAI-compatible base URL"},
+                "ai_key": {"type": "string", "description": "Optional OpenAI-compatible API key for paid LLM summarization"},
             },
             "required": ["target"],
+        },
+    },
+    {
+        "name": "wb_ai_providers",
+        "description": "List, inspect, health-check, or prompt Free (`g4f`/Ollama) and Paid (`OpenAI`/`DeepSeek`/`OpenRouter`/`ProxyAPI`/`Groq`) AI providers.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "default": "list", "description": "Action: list, models, test, quick_scan, or chat"},
+                "tier": {"type": "string", "default": "all", "description": "Filter tier for list: all, free, paid, local, g4f"},
+                "only_working": {"type": "boolean", "default": False},
+                "only_free": {"type": "boolean", "default": False},
+                "search": {"type": "string", "default": ""},
+                "provider": {"type": "string", "description": "Provider name/slug/index"},
+                "model": {"type": "string", "description": "Model name"},
+                "mode": {"type": "string", "default": "auto", "description": "auto, free, paid, or local"},
+                "prompt": {"type": "string", "default": "Ответь одним словом: Работает"},
+                "timeout": {"type": "number", "default": 12.0},
+            },
         },
     },
 ]
@@ -330,11 +354,72 @@ class WBMCPServer:
                 only_this_color=bool(args.get("only_this_color", True)),
                 limit=int(args.get("limit", 100)),
                 ai_key=args.get("ai_key"),
+                ai_mode=args.get("ai_mode"),
+                ai_provider=args.get("ai_provider"),
+                ai_model=args.get("ai_model"),
+                ai_base_url=args.get("ai_base_url"),
             )
             data = summary.model_dump()
             # Keep compact payload for LLM contexts
             data["reviews"] = data["reviews"][:15]
             return data
+
+        if name == "wb_ai_providers":
+            from wb_parser.ai import (
+                fetch_g4f_provider_models,
+                find_ai_provider,
+                generate_completion,
+                is_g4f_available,
+                list_ai_providers,
+                quick_scan_ai_providers,
+                test_ai_provider,
+            )
+
+            action = str(args.get("action") or "list").strip().lower()
+            if action == "list":
+                items = list_ai_providers(
+                    tier=str(args.get("tier") or "all"),
+                    only_working=bool(args.get("only_working", False)),
+                    only_free=bool(args.get("only_free", False)),
+                    search_query=str(args.get("search") or ""),
+                )
+                return {
+                    "g4f_installed": is_g4f_available(),
+                    "count": len(items),
+                    "providers": [p.model_dump() for p in items],
+                }
+            if action == "models":
+                info = find_ai_provider(str(args.get("provider") or ""))
+                if info is None:
+                    raise ValueError(f"Unknown AI provider: {args.get('provider')!r}")
+                models = (
+                    fetch_g4f_provider_models(info.id, timeout=float(args.get("timeout", 3.0)))
+                    if info.backend == "g4f"
+                    else list(info.models)
+                )
+                return {"provider": info.id, "backend": info.backend, "tier": info.tier, "models": models}
+            if action == "test":
+                res = test_ai_provider(
+                    args.get("provider"),
+                    mode=str(args.get("mode") or "auto"),
+                    model=args.get("model"),
+                    prompt=str(args.get("prompt") or "Ответь одним словом: Работает"),
+                    timeout=float(args.get("timeout", 12.0)),
+                )
+                return res.model_dump()
+            if action == "quick_scan":
+                scanned = quick_scan_ai_providers(timeout=float(args.get("timeout", 6.0)))
+                return {"count": len(scanned), "results": [r.model_dump() for r in scanned]}
+            if action == "chat":
+                out = generate_completion(
+                    str(args.get("prompt") or ""),
+                    mode=args.get("mode"),
+                    provider=args.get("provider"),
+                    model=args.get("model"),
+                    timeout=float(args.get("timeout", 25.0)),
+                )
+                return out.model_dump()
+            raise ValueError(f"Unknown wb_ai_providers action: {action!r}")
 
         raise ValueError(f"Unknown MCP tool: {name}")
 

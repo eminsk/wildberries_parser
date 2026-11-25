@@ -1,3 +1,14 @@
+python-wb-sdk-pro (2.3.0-1) unstable; urgency=medium
+
+  * Integrate unified Free & Paid AI engine (`wb_parser.ai`) inspired by `testg4f`:
+    free zero-key `g4f` provider discovery/health-checks/auto-fallback, local Ollama/LM Studio,
+    Hybrid OpenRouter/Groq/Gemini, and Paid OpenAI/DeepSeek/ProxyAPI endpoints.
+  * Add 12th CLI subcommand `wb-parser ai` (--list, --models, --test, --quick-scan, --ask).
+  * Add 9th MCP tool `wb_ai_providers` and upgrade `wb_smart_reviews` & Tab 4 GUI controls.
+  * Add optional extras `[ai]` / `[free-ai]` (`g4f>=0.4.0`) keeping core lightweight for all 18 runtimes.
+
+ -- eminsk <M_N_Nik@yahoo.com>  Wed, 25 Nov 2026 22:55:00 +0000
+
 python-wb-sdk-pro (2.2.1-1) unstable; urgency=medium
 
   * Fix WBMCPServer/wb-parser mcp ignoring WB_TRACKER_DB environment variable.
