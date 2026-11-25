@@ -16,15 +16,15 @@
 
 | Среда | Версии | Статус |
 |---|---|---|
-| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ Все 33 теста (Win / Linux / macOS) |
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ Все 34 теста (Win / Linux / macOS) |
 | **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Потокобезопасно (`RLock` + `wb_parser._model`) |
-| **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Все 33 теста |
+| **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Все 34 теста |
 
 Ядро SDK, CLI и MCP-сервера написано на чистом Python (`wb_parser._model` вместо `pydantic`) с каскадным HTTP-транспортом (`curl_cffi` с TLS Chrome 124 если установлен → `httpx[http2]` → `requests`), поэтому устанавливается и работает на **18 рантаймах Python** без Rust/C-зависимостей в ядре.
 
 ---
 
-## 🚀 Что объединено в одном проекте (`v2.3.0`)
+## 🚀 Что объединено в одном проекте (`v2.3.1`)
 
 1. **Ядро парсера, Async-клиент и CDN-роутер (`shards.py`, `client.py`, `http.py`):**
    - Исправлена маршрутизация отзывов **`feedbacks1` / `feedbacks2`** по точной формуле `root_id % 100 >= 50` (с резервным переключением на второй шард).
@@ -45,8 +45,8 @@
 4. **Умные отзывы + Гибридный движок Бесплатных/Платных AI (`reviews.py`, `ai.py`, из `wb_smart_review` + `testg4f`):**
    - Переводит `nm_id` → `root_id` через CDN `card.json` и забирает отзывы с `feedbacks1/2`, фильтрует по цвету (`nm_id`) или всей карточке (`root_id`).
    - **Без ключа и без интернета (Оффлайн):** статистика размерности (`matchingSize`), оценки 1★–5★, теги (`bables_tags`) и группировка плюсов/минусов.
-   - **Бесплатные модели (без API-ключей, `wb-sdk-pro[ai]`):** интеграция `g4f` — каталог провайдеров (`Pollinations`, `Airforce`, `Cerebras`, `BlackboxPro`, `DeepInfra` и др.), диагностика ошибок/задержки (`Health Check` 401/402/403/Timeout), автоперебор живых провайдеров + бесплатный локальный **Ollama** / **LM Studio**.
-   - **Платные и гибридные API:** встроенные пресеты **OpenAI** (`OPENAI_API_KEY`), **DeepSeek** (`DEEPSEEK_API_KEY`), **OpenRouter** (`OPENROUTER_API_KEY`, включая модели `:free`), **ProxyAPI** (`PROXYAPI_API_KEY`), **Groq** (`GROQ_API_KEY`), **Google Gemini** (`GEMINI_API_KEY`) или любой кастомный `base_url`.
+   - **Бесплатные модели (без API-ключей, `wb-sdk-pro[ai]`):** интеграция `g4f` — каталог провайдеров (`Yqcloud`, `Airforce`, `LLM7`, `GLM`, `DeepInfra`, `Cerebras` и др.), диагностика ошибок/задержки (`Health Check` 401/402/403/Timeout), автоперебор живых провайдеров + бесплатный локальный **Ollama** (`OLLAMA_BASE_URL`) / **LM Studio**.
+   - **Платные и гибридные API:** встроенные пресеты **OpenAI** (`OPENAI_API_KEY`), **DeepSeek** (`DEEPSEEK_API_KEY`), **OpenRouter** (`OPENROUTER_API_KEY`, включая модели `:free`), **ProxyAPI** (`PROXYAPI_API_KEY`), **Groq** (`openai/gpt-oss-20b`, `GROQ_API_KEY`), **Google Gemini** (`gemini-3.8-flash`, `GEMINI_API_KEY`) или любой кастомный `base_url`.
 
 5. **Трекер цен, экспорт, конфиги и Telegram (`tracker.py`, `export.py`, `config.py`, `telegram.py`):**
    - Потокобезопасная история цен и отслеживание снижения цены в SQLite (`wb_latest_prices`, `wb_price_history`).
@@ -110,8 +110,91 @@ sudo apt install python3-wb-sdk-pro
 git clone https://github.com/eminsk/wildberries_parser.git
 cd wildberries_parser
 uv sync              # ядро SDK + CLI + MCP
+uv sync --extra ai   # с бесплатным движком g4f
 uv sync --extra gui  # с Desktop GUI и Chrome TLS
+uv sync --all-extras # всё сразу
 ```
+
+---
+
+## ⚡ Быстрый старт — Python SDK
+
+### 1. Карточка товара, шардированные отзывы и экспорт
+
+```python
+from wb_parser import DEST_CODES, WBClient, to_csv, to_excel, to_json
+
+with WBClient(dest=DEST_CODES["Москва"], tracker_db="wb_prices.db") as wb:
+    wb.sync_upstreams()
+    item = wb.get_product(
+        "https://www.wildberries.ru/catalog/141217830/detail.aspx",
+        with_price_history=True,
+    )
+    print(item.name, item.brand, f"Отзывы: {item.feedback_count} (★ {item.valuation})")
+    to_excel([item], "result/wb_catalog.xlsx")
+    to_csv([item], "result/wb_catalog.csv")
+    to_json([item], "result/wb_catalog.json")
+```
+
+### 2. Асинхронный сбор (`AsyncWBClient`), WB Кошелёк и Позиции (Rank)
+
+```python
+import asyncio
+from wb_parser import AsyncWBClient, WBClient
+
+async def fetch_many():
+    async with AsyncWBClient(concurrency=16) as wb:
+        return await wb.gather_cards([141217830, 181851928])
+
+with WBClient() as wb:
+    res = wb.wallet_price(4990, use_club=True)
+    print(f"WB Клуб (-{res.discount_pct}%): {res.wallet_price} ₽")
+```
+
+### 3. Умные отзывы + Бесплатные (`g4f` / Ollama) и Платные AI-модели
+
+```python
+from wb_parser import AIClient, WBClient, list_ai_providers, test_ai_provider
+
+with WBClient() as wb:
+    # A) Быстрый оффлайн-разбор без интернета и ключей
+    offline = wb.analyze_reviews(141217830, only_this_color=True, limit=100)
+    print(offline.summary_mode, offline.top_pros, offline.top_cons)
+
+    # B) Бесплатный AI без ключа через g4f (требует `uv add "wb-sdk-pro[ai]"`)
+    free_res = wb.analyze_reviews(141217830, ai_mode="free", ai_provider="g4f")
+
+    # C) Бесплатный локальный Ollama (`http://localhost:11434/v1`)
+    local_res = wb.analyze_reviews(141217830, ai_mode="local", ai_provider="ollama", ai_model="llama3.2")
+
+    # D) Платные / гибридные API (OpenAI, DeepSeek, OpenRouter, ProxyAPI, Groq, Gemini)
+    paid_res = wb.analyze_reviews(
+        141217830,
+        ai_mode="paid",
+        ai_provider="deepseek",
+        ai_key="sk-...",
+    )
+
+# Сканер и проверка провайдеров (из testg4f):
+health = test_ai_provider("Yqcloud", mode="free", timeout=10.0)
+print(health.success, health.latency_seconds, health.hint)
+
+ai = AIClient(mode="auto")
+reply = ai.chat("Дай 3 совета для роста карточки на Wildberries")
+print(reply.provider, reply.tier, reply.content)
+```
+
+| Пресет (`--provider`) | Уровень | Модель по умолчанию | Env-переменная | Base URL |
+|---|---|---|---|---|
+| `g4f` / `Yqcloud`, `Airforce`, `LLM7`... | **Free** (без ключа) | модель провайдера | — *(нужен `[ai]`)* | динамические `g4f` |
+| `ollama` | **Local Free** | `llama3.2` | `OLLAMA_BASE_URL` | `http://localhost:11434/v1` |
+| `lmstudio` | **Local Free** | `local-model` | `LMSTUDIO_BASE_URL` | `http://localhost:1234/v1` |
+| `openrouter` | **Hybrid** (`:free` + Paid) | `deepseek/deepseek-chat-v3-0324:free` | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
+| `groq` | **Hybrid** (Free + Paid) | `openai/gpt-oss-20b` | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
+| `gemini` | **Hybrid** (Free + Paid) | `gemini-3.8-flash` | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `openai` | **Paid** | `gpt-4o-mini` | `OPENAI_API_KEY` | `https://api.openai.com/v1` |
+| `deepseek` | **Paid** | `deepseek-chat` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com/v1` |
+| `proxyapi` | **Paid** (РФ) | `gpt-4o-mini` | `PROXYAPI_API_KEY` | `https://api.proxyapi.ru/openai/v1` |
 
 ---
 
@@ -162,11 +245,12 @@ uv run wb-parser rank 141217830 "кроссовки dunk" --pages 3 -o ranks.xls
 # 8. Бесплатные и платные AI-провайдеры (список, модели, Health Check, quick-scan, запрос)
 uv run wb-parser ai --list
 uv run wb-parser ai --quick-scan
-uv run wb-parser ai -p Pollinations --test
+uv run wb-parser ai -p Yqcloud --test
 uv run wb-parser ai --ask "Оцени плюсы кроссовок" --mode free
 
 # 9. Прямой запрос отзывов по root_id (или по nm_id с флагом --is-nm)
-uv run wb-parser feedbacks 181851928 --is-nm
+uv run wb-parser feedbacks 181851928
+uv run wb-parser feedbacks 141217830 --is-nm
 
 # 10. Просмотр снижений цен из SQLite
 uv run wb-parser drops --db wb_prices.db
@@ -194,4 +278,4 @@ uv run wb-parser gui
 uv run pytest
 ```
 
-**33 теста** подтверждены на всех версиях Python в GitHub Actions на **Linux, Windows и macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12): шардинг, модели, TOML/JSON-конфиг, sync/async клиенты, WB Кошелёк, ранжирование, отзывы, Free/Paid AI-движок (`g4f`, Ollama, OpenAI/DeepSeek), Excel/CSV, 9 инструментов MCP, 12 команд CLI, GUI и потокобезопасность без GIL.
+**34 теста** подтверждены на всех версиях Python в GitHub Actions на **Linux, Windows и macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12): шардинг, модели, TOML/JSON-конфиг, sync/async клиенты, WB Кошелёк, ранжирование, отзывы, Free/Paid AI-движок (`g4f`, Ollama/`OLLAMA_BASE_URL`, OpenAI/DeepSeek/Groq), Excel/CSV, 9 инструментов MCP, 12 команд CLI, GUI и потокобезопасность без GIL.

@@ -572,11 +572,13 @@ class WBGUIApp:
         ctk.CTkLabel(prov_box, text="Провайдер (Free / Paid)", font=ctk.CTkFont(size=11), text_color="#94a3b8").pack(anchor="w")
         self._ai_provider_map = {
             "Auto Free Pool (g4f)": "g4f",
-            "g4f: Pollinations": "Pollinations",
+            "g4f: Yqcloud": "Yqcloud",
             "g4f: Airforce": "Airforce",
-            "g4f: Cerebras": "Cerebras",
-            "g4f: BlackboxPro": "BlackboxPro",
+            "g4f: LLM7": "LLM7",
+            "g4f: GLM": "GLM",
             "g4f: DeepInfra": "DeepInfra",
+            "g4f: Cerebras": "Cerebras",
+            "g4f: Pollinations": "Pollinations",
             "OpenAI (Paid)": "openai",
             "DeepSeek (Paid)": "deepseek",
             "OpenRouter (Free + Paid)": "openrouter",

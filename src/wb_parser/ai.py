@@ -16,11 +16,11 @@ installed.
 
 from __future__ import annotations
 
-import concurrent.futures
 import os
 import re
+import threading
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 try:
     import httpx
@@ -35,17 +35,17 @@ except ImportError:  # pragma: no cover
 from wb_parser._model import BaseModel, Field
 
 FREE_G4F_CANDIDATES: Tuple[str, ...] = (
-    "Pollinations",
+    "Yqcloud",
     "Airforce",
-    "BlackboxPro",
-    "Cerebras",
-    "Cloudflare",
+    "LLM7",
+    "GLM",
     "DeepInfra",
+    "Cloudflare",
     "BraveSearch",
-    "Copilot",
-    "ChatGPT",
-    "Pi",
-    "TeachAnything",
+    "G4FSpace",
+    "Cerebras",
+    "KiloCode",
+    "Pollinations",
 )
 
 AI_PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
@@ -85,7 +85,7 @@ AI_PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "models": [
             "deepseek/deepseek-chat-v3-0324:free",
             "meta-llama/llama-3.3-70b-instruct:free",
-            "google/gemini-2.5-flash",
+            "google/gemini-3.8-flash",
             "openai/gpt-4o-mini",
             "anthropic/claude-3.5-sonnet",
         ],
@@ -108,11 +108,11 @@ AI_PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "backend": "openai_compat",
         "tier": "hybrid",
         "base_url": "https://api.groq.com/openai/v1",
-        "default_model": "llama-3.3-70b-versatile",
+        "default_model": "openai/gpt-oss-20b",
         "env_var": "GROQ_API_KEY",
         "needs_auth": True,
         "url": "https://console.groq.com",
-        "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen-qwq-32b"],
+        "models": ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"],
         "notes": "Ultra-fast LPU inference with free developer quota",
     },
     "gemini": {
@@ -120,11 +120,11 @@ AI_PROVIDER_PRESETS: Dict[str, Dict[str, Any]] = {
         "backend": "openai_compat",
         "tier": "hybrid",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "default_model": "gemini-2.5-flash",
+        "default_model": "gemini-3.8-flash",
         "env_var": "GEMINI_API_KEY",
         "needs_auth": True,
         "url": "https://aistudio.google.com",
-        "models": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
+        "models": ["gemini-3.8-flash", "gemini-flash-latest", "gemini-pro-latest"],
         "notes": "Google AI Studio free/paid tier via OpenAI-compatible endpoint",
     },
     "ollama": {
@@ -289,10 +289,56 @@ def _is_local_url(url: str) -> bool:
     return "localhost" in lowered or "127.0.0.1" in lowered or "0.0.0.0" in lowered
 
 
+def _strip_g4f_prefix(name: str) -> Tuple[str, bool]:
+    """Strip explicit `g4f:` prefix; returns `(clean_name, forced_g4f)`."""
+    trimmed = name.strip()
+    if trimmed.lower().startswith("g4f:"):
+        return trimmed[4:].strip(), True
+    return trimmed, False
+
+
+_T = TypeVar("_T")
+
+
+def _run_with_daemon_timeout(fn: Callable[[], _T], timeout: float, timeout_label: str) -> _T:
+    """
+    Execute `fn()` on a daemon thread with wall-clock timeout without registering
+    non-daemon `ThreadPoolExecutor` atexit joins (prevents process exit hangs).
+    """
+    result_box: Dict[str, Any] = {}
+
+    def _runner() -> None:
+        try:
+            result_box["value"] = fn()
+        except BaseException as exc:  # noqa: BLE001
+            result_box["error"] = exc
+
+    t = threading.Thread(target=_runner, daemon=True)
+    t.start()
+    t.join(timeout=max(0.05, float(timeout)))
+    if t.is_alive():
+        raise TimeoutError(f"{timeout_label} timed out after {timeout}s")
+    if "error" in result_box:
+        raise result_box["error"]
+    return result_box["value"]
+
+
+def _is_non_text_or_nag_response(content: str) -> bool:
+    lowered = content.strip().lower()
+    return (
+        lowered.startswith("<audio ")
+        or "https://image.pollinations.ai/" in lowered
+        or "sign up and repeat your request" in lowered
+    )
+
+
 def _resolve_preset_key(name: Optional[str]) -> Optional[str]:
     if not name:
         return None
-    norm = name.strip().lower()
+    clean, forced_g4f = _strip_g4f_prefix(name)
+    if forced_g4f:
+        return None
+    norm = clean.lower()
     if norm in _PROVIDER_ALIASES:
         return _PROVIDER_ALIASES[norm]
     if norm in AI_PROVIDER_PRESETS:
@@ -380,10 +426,11 @@ def fetch_g4f_provider_models(provider_name: str, timeout: float = 3.0) -> List[
     if mods is None:
         return []
     g4f_providers, _ = mods
-    target_cls = getattr(g4f_providers, provider_name, None)
+    clean_name, _ = _strip_g4f_prefix(provider_name)
+    target_cls = getattr(g4f_providers, clean_name, None)
     if target_cls is None:
         for cls in getattr(g4f_providers, "__providers__", []):
-            if getattr(cls, "__name__", "").lower() == provider_name.strip().lower():
+            if getattr(cls, "__name__", "").lower() == clean_name.lower():
                 target_cls = cls
                 break
     if target_cls is None:
@@ -393,10 +440,8 @@ def fetch_g4f_provider_models(provider_name: str, timeout: float = 3.0) -> List[
     if len(models) > 1 or not hasattr(target_cls, "get_models"):
         return models
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(target_cls.get_models)
     try:
-        res = future.result(timeout=timeout)
+        res = _run_with_daemon_timeout(target_cls.get_models, timeout=timeout, timeout_label=clean_name)
         extra_raw: Sequence[Any] = ()
         if isinstance(res, dict):
             extra_raw = list(res.keys())
@@ -408,8 +453,6 @@ def fetch_g4f_provider_models(provider_name: str, timeout: float = 3.0) -> List[
                 models.append(val.strip())
     except Exception:
         pass
-    finally:
-        executor.shutdown(wait=False)
     return models
 
 
@@ -497,7 +540,7 @@ def find_ai_provider(
     identifier: Union[str, int],
     providers: Optional[Sequence[AIProviderInfo]] = None,
 ) -> Optional[AIProviderInfo]:
-    """Find a free or paid AI provider by 1-based index, exact slug/name, or substring."""
+    """Find a free or paid AI provider by 1-based index, exact slug/name (`g4f:Name`), or substring."""
     pool = list(providers) if providers is not None else list_ai_providers()
     id_str = str(identifier).strip()
     if not id_str:
@@ -508,7 +551,10 @@ def find_ai_provider(
         if 1 <= idx <= len(pool):
             return pool[idx - 1]
 
-    id_lower = _PROVIDER_ALIASES.get(id_str.lower(), id_str.lower())
+    clean_id, forced_g4f = _strip_g4f_prefix(id_str)
+    if forced_g4f:
+        pool = [p for p in pool if p.backend == "g4f"]
+    id_lower = clean_id.lower() if forced_g4f else _PROVIDER_ALIASES.get(clean_id.lower(), clean_id.lower())
     for p in pool:
         if p.id.lower() == id_lower or p.name.lower() == id_lower:
             return p
@@ -560,17 +606,18 @@ def _post_openai_chat(
     return str((choices[0].get("message") or {}).get("content") or "").strip()
 
 
-def _resolve_g4f_class(provider_name: str) -> Any:
+def _resolve_g4f_class(provider_name: str) -> Tuple[Any, Any]:
     mods = _load_g4f_modules()
     if mods is None:
         raise RuntimeError('Optional `g4f` backend is not installed. Run: uv add "wb-sdk-pro[ai]"')
     g4f_providers, G4FClient = mods
 
-    direct = getattr(g4f_providers, provider_name, None)
+    clean_name, _ = _strip_g4f_prefix(provider_name)
+    direct = getattr(g4f_providers, clean_name, None)
     if direct is not None:
         return direct, G4FClient
 
-    target_lower = provider_name.strip().lower()
+    target_lower = clean_name.lower()
     for cls in getattr(g4f_providers, "__providers__", []):
         if getattr(cls, "__name__", "").lower() == target_lower:
             return cls, G4FClient
@@ -584,7 +631,7 @@ def _call_g4f_provider(
     model: str = "",
     timeout: float = 15.0,
 ) -> Tuple[str, str, str]:
-    """Call a single `g4f` provider with hard wall-clock timeout; returns `(content, provider, model)`."""
+    """Call a single `g4f` provider with hard daemon-thread timeout; returns `(content, provider, model)`."""
     provider_cls, G4FClient = _resolve_g4f_class(provider_name)
     resolved_name = getattr(provider_cls, "__name__", str(provider_name))
     target_model = model or str(getattr(provider_cls, "default_model", "") or "")
@@ -600,20 +647,12 @@ def _call_g4f_provider(
             return str(resp.choices[0].message.content or "").strip()
         return str(resp).strip()
 
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(_run)
-    try:
-        content = future.result(timeout=timeout)
-        executor.shutdown(wait=False)
-        if not content:
-            raise RuntimeError(f"{resolved_name} returned empty response")
-        return content, resolved_name, target_model or "(default)"
-    except concurrent.futures.TimeoutError as exc:
-        executor.shutdown(wait=False)
-        raise TimeoutError(f"{resolved_name} timed out after {timeout}s") from exc
-    except Exception:
-        executor.shutdown(wait=False)
-        raise
+    content = _run_with_daemon_timeout(_run, timeout=timeout, timeout_label=resolved_name)
+    if not content:
+        raise RuntimeError(f"{resolved_name} returned empty response")
+    if _is_non_text_or_nag_response(content):
+        raise RuntimeError(f"{resolved_name} returned non-text or signup prompt: {content[:80]}")
+    return content, resolved_name, target_model or "(default)"
 
 
 def _g4f_fallback_order() -> List[str]:
@@ -669,7 +708,10 @@ def _resolve_openai_params(
 
     preset = AI_PROVIDER_PRESETS.get(preset_slug or "openai", AI_PROVIDER_PRESETS["openai"])
     resolved_slug = preset_slug or "openai"
-    resolved_url = (base_url or "").strip() or str(preset["base_url"])
+    env_base_override = ""
+    if not preset.get("needs_auth") and preset.get("env_var"):
+        env_base_override = (os.environ.get(str(preset["env_var"])) or "").strip()
+    resolved_url = (base_url or "").strip() or env_base_override or str(preset["base_url"])
     resolved_tier = "local" if _is_local_url(resolved_url) else str(preset["tier"])
     resolved_model = (model or "").strip() or str(preset["default_model"])
 
@@ -907,37 +949,44 @@ def test_ai_provider(
 
 def quick_scan_ai_providers(timeout: float = 6.0) -> List[AIProviderResult]:
     """
-    Scan popular free `g4f` providers + configured local/paid OpenAI-compatible presets.
-    Mirrors `testg4f --quick-scan` cleanly for both free and paid AI backends.
+    Scan popular free `g4f` providers + configured local/paid OpenAI-compatible presets concurrently
+    using daemon threads (matches `testg4f --quick-scan` without exit hangs).
     """
-    results: List[AIProviderResult] = []
+    tasks: List[Tuple[str, str, Optional[str]]] = []
     if is_g4f_available():
         existing = {p.id.lower(): p for p in list_g4f_providers()}
         for candidate in FREE_G4F_CANDIDATES:
             info = existing.get(candidate.lower())
             if info:
-                results.append(
-                    test_ai_provider(
-                        info.id,
-                        mode="free",
-                        model=info.default_model or None,
-                        prompt="Ответь 1 словом: ОК",
-                        timeout=timeout,
-                    )
-                )
+                tasks.append((f"g4f:{info.id}", "free", info.default_model or None))
 
     for p in list_ai_providers(include_g4f=False):
         if p.configured and p.tier in ("paid", "hybrid"):
-            results.append(
-                test_ai_provider(
-                    p.id,
-                    mode="paid",
-                    model=p.default_model,
-                    prompt="Ответь 1 словом: ОК",
-                    timeout=timeout,
-                )
+            tasks.append((p.id, "paid", p.default_model))
+
+    results: List[Optional[AIProviderResult]] = [None] * len(tasks)
+    sem = threading.Semaphore(6)
+
+    def _probe(idx: int, prov: str, mode_name: str, mdl: Optional[str]) -> None:
+        with sem:
+            results[idx] = test_ai_provider(
+                prov,
+                mode=mode_name,
+                model=mdl,
+                prompt="Ответь 1 словом: ОК",
+                timeout=timeout,
             )
-    return results
+
+    threads: List[threading.Thread] = []
+    for idx, (prov, mode_name, mdl) in enumerate(tasks):
+        t = threading.Thread(target=_probe, args=(idx, prov, mode_name, mdl), daemon=True)
+        t.start()
+        threads.append(t)
+
+    for t in threads:
+        t.join(timeout=timeout + 2.0)
+
+    return [r for r in results if r is not None]
 
 
 def parse_json_payload(raw_content: str) -> Dict[str, Any]:

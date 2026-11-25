@@ -1,3 +1,14 @@
+python-wb-sdk-pro (2.3.1-1) unstable; urgency=medium
+
+  * Use daemon threads in `wb_parser.ai` timeouts and parallel `--quick-scan`
+    to prevent CLI/script hangs on slow g4f sockets.
+  * Update live default models (`groq`: openai/gpt-oss-20b, `gemini`: gemini-3.8-flash),
+    prioritize live text `g4f` providers (`Yqcloud`, `Airforce`, `LLM7`, `GLM`),
+    filter image/audio/signup prompts, honor `OLLAMA_BASE_URL`, and support `g4f:` prefix.
+  * Align all README.md, README_RU.md, and GUI preset/feedback CLI examples cleanly.
+
+ -- eminsk <M_N_Nik@yahoo.com>  Wed, 25 Nov 2026 23:15:00 +0000
+
 python-wb-sdk-pro (2.3.0-1) unstable; urgency=medium
 
   * Integrate unified Free & Paid AI engine (`wb_parser.ai`) inspired by `testg4f`:

@@ -65,12 +65,12 @@ def test_mock_g4f_discovery_fallback_and_health_diagnostics(monkeypatch):
         default_model = "secret"
         url = "https://paid.example"
 
-    BrokenFreeProvider.__name__ = "Pollinations"  # Candidate #1 in FREE_G4F_CANDIDATES
+    BrokenFreeProvider.__name__ = "Yqcloud"      # Candidate #1 in FREE_G4F_CANDIDATES
     WorkingFreeProvider.__name__ = "Airforce"     # Candidate #2 (fallback target)
 
     fake_providers_ns = types.SimpleNamespace(
         __providers__=[BrokenFreeProvider, WorkingFreeProvider, SecretPaidG4F],
-        Pollinations=BrokenFreeProvider,
+        Yqcloud=BrokenFreeProvider,
         Airforce=WorkingFreeProvider,
         SecretPaidG4F=SecretPaidG4F,
     )
@@ -93,18 +93,18 @@ def test_mock_g4f_discovery_fallback_and_health_diagnostics(monkeypatch):
     monkeypatch.setattr(wb_ai, "_load_g4f_modules", lambda: (fake_providers_ns, _FakeG4FClient))
 
     free_list = wb_ai.list_g4f_providers(only_working=True, only_free=True)
-    assert [p.id for p in free_list] == ["Pollinations", "Airforce"]
+    assert [p.id for p in free_list] == ["Yqcloud", "Airforce"]
 
-    # Auto-fallback skips Pollinations (403) and succeeds on Airforce
+    # Auto-fallback skips Yqcloud (403) and succeeds on Airforce
     chat_res = wb_ai.generate_completion("Test prompt", mode="free")
     assert chat_res.ok is True
     assert chat_res.provider == "Airforce"
     assert chat_res.tier == "free"
     assert "g4f:Airforce/openai-fast" in chat_res.attempts
-    assert any("Pollinations" in a for a in chat_res.attempts)
+    assert any("Yqcloud" in a for a in chat_res.attempts)
 
     # Direct health-check classifies 403 Cloudflare cleanly
-    fail_health = wb_ai.test_ai_provider("Pollinations", mode="free")
+    fail_health = wb_ai.test_ai_provider("Yqcloud", mode="free")
     assert fail_health.success is False
     assert fail_health.hint and "Cloudflare" in fail_health.hint
 
@@ -216,3 +216,42 @@ def test_mcp_ai_providers_tool(tmp_path: Path, monkeypatch):
     })
     assert chat_resp["result"]["structuredContent"]["ok"] is True
     assert chat_resp["result"]["structuredContent"]["content"] == "ОК"
+
+
+def test_ollama_env_url_g4f_prefix_and_nag_filter(monkeypatch):
+    seen_urls = []
+
+    def _fake_post(prompt: str, *, base_url: str, api_key: str, model: str, temperature: float = 0.2, timeout: float = 25.0) -> str:
+        seen_urls.append(base_url)
+        return "Local OK"
+
+    monkeypatch.setattr(wb_ai, "_post_openai_chat", _fake_post)
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://127.0.0.1:11500/v1")
+    local_res = wb_ai.generate_completion("ping", mode="local", provider="ollama")
+    assert local_res.ok is True
+    assert seen_urls[-1] == "http://127.0.0.1:11500/v1"
+
+    class _NagGemini:
+        working = True
+        needs_auth = False
+        default_model = "gemini-free"
+
+    _NagGemini.__name__ = "Gemini"
+    fake_ns = types.SimpleNamespace(__providers__=[_NagGemini], Gemini=_NagGemini)
+
+    class _NagCompletions:
+        def create(self, model="", messages=None, stream=False):
+            return types.SimpleNamespace(
+                choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="Sign up and repeat your request."))]
+            )
+
+    class _NagClient:
+        def __init__(self, provider=None):
+            self.chat = types.SimpleNamespace(completions=_NagCompletions())
+
+    monkeypatch.setattr(wb_ai, "_load_g4f_modules", lambda: (fake_ns, _NagClient))
+    # `g4f:Gemini` explicitly routes to g4f instead of Google API preset and filters nag text
+    g4f_res = wb_ai.generate_completion("ping", mode="auto", provider="g4f:Gemini")
+    assert g4f_res.backend == "g4f"
+    assert g4f_res.ok is False
+    assert "non-text or signup prompt" in (g4f_res.error or "")

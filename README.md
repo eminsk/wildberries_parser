@@ -9,10 +9,10 @@
 </p>
 
 [![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
-[![Release](https://img.shields.io/badge/release-v2.3.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.3.0)
+[![Release](https://img.shields.io/badge/release-v2.3.1-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.3.1)
 [![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-33%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Tests](https://img.shields.io/badge/pytest-34%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
 [![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-7%20Tabs%20%7C%20CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
 [![MCP Server](https://img.shields.io/badge/MCP-9%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
@@ -25,7 +25,7 @@
 
 | Runtime | Versions | Status |
 |---|---|---|
-| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 33 tests pass (Win / Linux / macOS) |
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 34 tests pass (Win / Linux / macOS) |
 | **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Thread-safe (`RLock` + `wb_parser._model`) |
 | **PyPy** | 3.8 (Linux CI), 3.9, 3.10, 3.11, 3.12 | ✅ Pure-Python core passes without C/Rust deps |
 
@@ -103,7 +103,9 @@ sudo apt install python3-wb-sdk-pro
 git clone https://github.com/eminsk/wildberries_parser.git
 cd wildberries_parser
 uv sync              # core SDK + CLI + MCP
+uv sync --extra ai   # include Free g4f AI engine
 uv sync --extra gui  # include Desktop GUI + Chrome TLS
+uv sync --all-extras # everything (GUI + Free AI + TLS + pandas)
 ```
 
 ---
@@ -191,7 +193,7 @@ with WBClient() as wb:
 
 # Provider Discovery & Health-Check (from testg4f):
 providers = list_ai_providers(tier="all")
-health = test_ai_provider("Pollinations", mode="free", timeout=10.0)
+health = test_ai_provider("Yqcloud", mode="free", timeout=10.0)
 print(health.success, health.latency_seconds, health.hint)
 
 ai = AIClient(mode="auto")  # uses paid env key if set, otherwise free g4f pool
@@ -203,12 +205,12 @@ Supported built-in AI presets & environment variables:
 
 | Preset Slug | Tier | Default Model | Env Variable | Base URL |
 |---|---|---|---|---|
-| `g4f` / `Pollinations`, `Cerebras`, ... | **Free** (No Key) | provider default | — *(requires `[ai]`)* | dynamic `g4f` providers |
+| `g4f` / `Yqcloud`, `Airforce`, `LLM7`, `GLM`... | **Free** (No Key) | provider default | — *(requires `[ai]`)* | dynamic `g4f` providers |
 | `ollama` | **Local Free** | `llama3.2` | `OLLAMA_BASE_URL` | `http://localhost:11434/v1` |
 | `lmstudio` | **Local Free** | `local-model` | `LMSTUDIO_BASE_URL` | `http://localhost:1234/v1` |
 | `openrouter` | **Hybrid** (`:free` + Paid) | `deepseek/deepseek-chat-v3-0324:free` | `OPENROUTER_API_KEY` | `https://openrouter.ai/api/v1` |
-| `groq` | **Hybrid** (Free Tier + Paid) | `llama-3.3-70b-versatile` | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
-| `gemini` | **Hybrid** (Free Tier + Paid) | `gemini-2.5-flash` | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `groq` | **Hybrid** (Free Tier + Paid) | `openai/gpt-oss-20b` | `GROQ_API_KEY` | `https://api.groq.com/openai/v1` |
+| `gemini` | **Hybrid** (Free Tier + Paid) | `gemini-3.8-flash` | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com/v1beta/openai` |
 | `openai` | **Paid** | `gpt-4o-mini` | `OPENAI_API_KEY` | `https://api.openai.com/v1` |
 | `deepseek` | **Paid** | `deepseek-chat` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com/v1` |
 | `proxyapi` | **Paid** (RU) | `gpt-4o-mini` | `PROXYAPI_API_KEY` | `https://api.proxyapi.ru/openai/v1` |
@@ -244,7 +246,7 @@ uv run python run_gui.py
 1. **🔍 Парсер**: Scrape product links, `nm_id` articles, `/seller/...` stores, or search queries with price/discount/rating/whitelist/blacklist keyword filters and 24/7 loop monitoring.
 2. **📦 Каталог товаров**: Live cards displaying price, `💳 WB Wallet` price, discount badge, price drop alert (`📉`), clickable *"Открыть на WB ↗"*, and 1-click export to **Excel `.xlsx`**, **CSV**, and **JSON**.
 3. **📈 Позиции (Rank)**: Paste `nm_id : keyword` pairs, choose sort order (`popular`, `pricedown`, `priceup`, `rate`, `newly`), scan pages `1..N`, see position movement (`▲`/`▼`), and export rank reports to Excel.
-4. **💬 Умные отзывы**: Enter any WB URL or `nm_id` to extract buyer reviews, rating histogram, size fit stats, and side-by-side **✅ Pros** & **❌ Cons** (instant offline mode OR optional LLM API).
+4. **💬 Умные отзывы + AI**: Enter any WB URL or `nm_id` to extract buyer reviews, rating histogram, size fit stats, and **✅ Pros** & **❌ Cons** using Offline mode, **Free zero-key AI (`g4f` Auto / `Yqcloud` / `Airforce` / ...)**, **Local (`Ollama` / `LM Studio`)**, or **Paid APIs (`OpenAI` / `DeepSeek` / `OpenRouter` / `ProxyAPI` / `Groq` / `Gemini`)** with a built-in **`⚡ Проверить AI`** health-check button.
 5. **🌐 Прокси и Сессия**: Choose delivery region (`dest`), configure HTTP/SOCKS5 proxy, MobileProxy rotation URL, cookies/`x_wbaas_token`, and ping CDN + live WB Wallet discount rates in 1 click.
 6. **✈️ Telegram**: Forward product cards & alerts via a decoupled Telegram proxy.
 7. **📋 Журнал**: Live execution log (all settings persist in `storage/gui_config.json`).
@@ -281,11 +283,12 @@ uv run wb-parser rank 141217830 "кроссовки dunk" --pages 3 -o ranks.xls
 # 8. Discover, health-check & query Free (g4f/Ollama) + Paid AI providers (testg4f integration)
 uv run wb-parser ai --list
 uv run wb-parser ai --quick-scan
-uv run wb-parser ai -p Pollinations --test --timeout 10
+uv run wb-parser ai -p Yqcloud --test --timeout 10
 uv run wb-parser ai --ask "Выдели плюсы товара" --mode free
 
-# 9. Check sharded feedbacks directly (--is-nm resolves nm_id -> root_id via CDN first)
-uv run wb-parser feedbacks 181851928 --is-nm
+# 9. Check sharded feedbacks directly by root_id (or by nm_id with --is-nm)
+uv run wb-parser feedbacks 181851928
+uv run wb-parser feedbacks 141217830 --is-nm
 
 # 10. View SQLite price drops
 uv run wb-parser drops --db wb_prices.db
@@ -331,7 +334,7 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**33 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (12 commands), GUI config/missing-extra handling, and No-GIL thread safety.
+**34 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama/`OLLAMA_BASE_URL`) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (12 commands), GUI config/missing-extra handling, and No-GIL thread safety.
 
 ## 📄 License
 
