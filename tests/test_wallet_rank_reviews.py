@@ -3,6 +3,8 @@ Tests for WB Wallet Calculator (`wb_rank`), Search Rank Tracker (`wb_rank`),
 and Smart Review Analyzer (`wb_smart_review`).
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, Optional
 

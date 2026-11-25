@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wb-sdk-pro"
-version = "2.1.1"
+version = "2.2.0"
 description = "All-in-One Wildberries SDK, 7-Tab Desktop GUI, CLI & MCP Server: CDN card extraction, feedbacks1/2 sharding, WB Wallet pricing, Search Rank Tracker, Smart Review Analyzer, and Excel export"
 readme = "README.md"
 authors = [
     { name = "eminsk", email = "M_N_Nik@yahoo.com" },
 ]
 license = { text = "MIT" }
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 keywords = [
     "wildberries",
     "wb",
@@ -23,34 +23,59 @@ keywords = [
     "mcp",
     "customtkinter",
     "price-tracker",
+    "wb-rank",
+    "wb-smart-review",
+    "wb-wallet",
+    "no-gil",
+    "pypy",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: 3.16",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "curl-cffi>=0.7.0",
-    "customtkinter>=5.2.0",
     "httpx[http2]>=0.27.0",
     "openpyxl>=3.1.0",
-    "pillow>=10.0.0",
-    "pydantic>=2.7.0",
+    "requests>=2.31.0",
+    "tomli>=2.0.0; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]
+tls = [
+    "curl-cffi>=0.7.0",
+]
+gui = [
+    "customtkinter>=5.2.0",
+    "pillow>=10.0.0",
+    "curl-cffi>=0.7.0",
+]
 dataframe = [
     "pandas>=2.0.0",
 ]
+pandas = [
+    "pandas>=2.0.0",
+]
 all = [
+    "curl-cffi>=0.7.0",
+    "customtkinter>=5.2.0",
+    "pillow>=10.0.0",
     "pandas>=2.0.0",
 ]
 
@@ -67,6 +92,7 @@ wb-mcp = "wb_parser.mcp_server:main_mcp"
 
 [project.urls]
 Homepage = "https://github.com/eminsk/wildberries_parser"
+Documentation = "https://eminsk.github.io/"
 Repository = "https://github.com/eminsk/wildberries_parser"
 Issues = "https://github.com/eminsk/wildberries_parser/issues"
 

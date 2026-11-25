@@ -75,8 +75,11 @@ class WBConfig:
         elif suffix == ".toml":
             try:
                 import tomllib
-            except ImportError as exc:  # pragma: no cover
-                raise RuntimeError("tomllib requires Python 3.11+") from exc
+            except ImportError:
+                try:
+                    import tomli as tomllib  # type: ignore[no-redef]
+                except ImportError as exc:  # pragma: no cover
+                    raise RuntimeError("TOML parsing on Python <3.11 requires `tomli`: uv add tomli") from exc
             raw = tomllib.loads(cfg_path.read_bytes().decode("utf-8"))
             raw = raw.get("wildberries", raw) if isinstance(raw, dict) else {}
         else:

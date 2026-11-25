@@ -13,6 +13,8 @@ Includes:
 from __future__ import annotations
 
 import re
+import sys
+import threading
 from bisect import bisect_right
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -20,8 +22,10 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from wb_parser.exceptions import WBValidationError
 
+_DATACLASS_KW: Dict[str, Any] = {"frozen": True, "slots": True} if sys.version_info >= (3, 10) else {"frozen": True}
 
-@dataclass(frozen=True, slots=True)
+
+@dataclass(**_DATACLASS_KW)
 class BasketRoute:
     """Volume partition mapping `[vol_from, vol_to]` to a CDN basket host."""
 
@@ -109,18 +113,21 @@ class BasketRouter:
     """
 
     def __init__(self, routes: Optional[List[BasketRoute]] = None) -> None:
+        self._lock = threading.RLock()
         if routes is None:
             routes = [BasketRoute(a, b, h) for a, b, h in DEFAULT_BASKET_RANGES]
         self._set_routes(routes)
 
     def _set_routes(self, routes: List[BasketRoute]) -> None:
-        self._routes: List[BasketRoute] = sorted(routes, key=lambda r: r.vol_from)
-        self._starts: List[int] = [r.vol_from for r in self._routes]
+        with self._lock:
+            self._routes: List[BasketRoute] = sorted(routes, key=lambda r: r.vol_from)
+            self._starts: List[int] = [r.vol_from for r in self._routes]
 
     @property
     def routes_count(self) -> int:
         """Number of configured shard ranges."""
-        return len(self._routes)
+        with self._lock:
+            return len(self._routes)
 
     def update_from_upstreams(self, payload: Dict[str, Any]) -> int:
         """
@@ -162,26 +169,29 @@ class BasketRouter:
     def resolve_host(self, nm_id: int) -> str:
         """Resolve exact `basket-XX.wbbasket.ru` host for `nm_id`."""
         vol, _ = self.vol_and_part(nm_id)
-        if not self._routes:
-            return "basket-01.wbbasket.ru"
+        with self._lock:
+            routes = self._routes
+            starts = self._starts
+            if not routes:
+                return "basket-01.wbbasket.ru"
 
-        idx = bisect_right(self._starts, vol) - 1
-        if idx < 0:
-            return self._routes[0].host
+            idx = bisect_right(starts, vol) - 1
+            if idx < 0:
+                return routes[0].host
 
-        route = self._routes[idx]
-        if route.vol_from <= vol <= route.vol_to:
+            route = routes[idx]
+            if route.vol_from <= vol <= route.vol_to:
+                return route.host
+
+            # Future article beyond known max route: extrapolate with +768 step
+            last = routes[-1]
+            if vol > last.vol_to:
+                last_num_match = re.search(r"basket-(\d+)", last.host)
+                base_num = int(last_num_match.group(1)) if last_num_match else len(routes)
+                extra = (vol - last.vol_to - 1) // 768 + 1
+                return f"basket-{base_num + extra:02d}.wbbasket.ru"
+
             return route.host
-
-        # Future article beyond known max route: extrapolate with +768 step
-        last = self._routes[-1]
-        if vol > last.vol_to:
-            last_num_match = re.search(r"basket-(\d+)", last.host)
-            base_num = int(last_num_match.group(1)) if last_num_match else len(self._routes)
-            extra = (vol - last.vol_to - 1) // 768 + 1
-            return f"basket-{base_num + extra:02d}.wbbasket.ru"
-
-        return route.host
 
     def card_json_url(self, nm_id: int, lang: str = "ru") -> str:
         """Build direct `wbbasket.ru` URL for static card JSON (`card.json`)."""

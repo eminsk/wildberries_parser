@@ -9,15 +9,27 @@
 </p>
 
 [![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
-[![Release](https://img.shields.io/badge/release-v2.1.1-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.1.1)
-[![Python Versions](https://img.shields.io/badge/python-3.10%20--%203.13+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Release](https://img.shields.io/badge/release-v2.2.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.2.0)
+[![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-24%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Tests](https://img.shields.io/badge/pytest-25%20passed%20%C3%97%2017%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
 [![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-7%20Tabs%20%7C%20CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
 [![MCP Server](https://img.shields.io/badge/MCP-8%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
 > **Unified 3-in-1 Wildberries Architecture** upgrading and merging `wildberries_parser` + `wb_rank` + `wb_smart_review` into one modular, type-safe SDK, Desktop App, CLI, and MCP Server.
+
+---
+
+## 🐍 Python Compatibility
+
+| Runtime | Versions | Status |
+|---|---|---|
+| **CPython** | 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15, 3.16 | ✅ All 25 tests pass |
+| **Free-Threaded (No-GIL)** | 3.13t, 3.14t, 3.15t, 3.16t | ✅ Thread-safe, all pass |
+| **PyPy** | 3.9, 3.10, 3.11, 3.12 | ✅ All 25 tests pass |
+
+**17 runtimes tested** with zero Rust/C extensions in the core. Pure-Python `BaseModel` replaces `pydantic` for maximum portability.
 
 ---
 
@@ -34,7 +46,9 @@
 
 ---
 
-## 📦 Installation (`uv` / `pip`)
+## 📦 Installation
+
+### PyPI (`uv` / `pip`)
 
 ```bash
 # Using uv (recommended)
@@ -47,7 +61,31 @@ uvx --from wb-sdk-pro wb-gui
 pip install wb-sdk-pro
 ```
 
-From source:
+### Optional Extras
+
+```bash
+# Desktop GUI (adds customtkinter, Pillow, curl_cffi)
+uv add "wb-sdk-pro[gui]"
+
+# Chrome TLS engine (adds curl_cffi)
+uv add "wb-sdk-pro[tls]"
+
+# Everything
+uv add "wb-sdk-pro[all]"
+```
+
+### Debian / Ubuntu (APT)
+
+```bash
+# 1-line setup (adds eminsk PPA + GPG key)
+curl -sS https://eminsk.github.io/ppa/setup.sh | sudo bash
+
+# Install
+sudo apt install python3-wb-sdk-pro
+```
+
+### From Source
+
 ```bash
 git clone https://github.com/eminsk/wildberries_parser.git
 cd wildberries_parser
@@ -176,7 +214,7 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**24 tests passing** covering shard math, models, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel exports, MCP tools, CLI, and GUI config persistence.
+**25 tests passing × 17 Python runtimes** (CPython 3.8–3.16, PyPy 3.9–3.12, Free-Threaded 3.13t–3.16t) covering shard math, models, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Excel exports, MCP tools, CLI, GUI config persistence, and thread safety.
 
 ## 📄 License
 

@@ -10,6 +10,8 @@ floored prices matching the Wildberries frontend.
 from __future__ import annotations
 
 import logging
+import sys
+import threading
 from dataclasses import dataclass
 from decimal import ROUND_FLOOR, Decimal
 from typing import Any, Optional
@@ -17,6 +19,8 @@ from typing import Any, Optional
 from wb_parser.http import SyncWBTransport
 
 logger = logging.getLogger("wb_parser.wallet")
+
+_DATACLASS_KW = {"frozen": True, "slots": True} if sys.version_info >= (3, 10) else {"frozen": True}
 
 DEFAULT_PAYMENT_URLS = (
     "https://static-basket-01.wbbasket.ru/vol1/global-payment/default-payment.json",
@@ -28,7 +32,7 @@ SETTINGS_URLS = (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(**_DATACLASS_KW)
 class WalletSettings:
     """Active WB Wallet discount percentages and display caps."""
 
@@ -39,7 +43,7 @@ class WalletSettings:
     is_active: bool = False
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(**_DATACLASS_KW)
 class WalletPriceResult:
     """Calculated WB Wallet price breakdown for a single item price."""
 
@@ -57,6 +61,7 @@ class WBWalletCalculator:
     def __init__(self, transport: Optional[SyncWBTransport] = None) -> None:
         self._owns_transport = transport is None
         self.transport = transport or SyncWBTransport(timeout=8.0, max_retries=2)
+        self._cache_lock = threading.RLock()
         self._cached_settings: Optional[WalletSettings] = None
 
     def close(self) -> None:
@@ -75,8 +80,9 @@ class WBWalletCalculator:
 
     def fetch_settings(self, *, force_refresh: bool = False) -> WalletSettings:
         """Fetch live discount rates and max price limits from WB CDN."""
-        if self._cached_settings is not None and not force_refresh:
-            return self._cached_settings
+        with self._cache_lock:
+            if self._cached_settings is not None and not force_refresh:
+                return self._cached_settings
 
         wallet_pct = Decimal("0")
         club_pct = Decimal("0")
@@ -109,14 +115,16 @@ class WBWalletCalculator:
             except Exception:
                 pass
 
-        self._cached_settings = WalletSettings(
+        settings = WalletSettings(
             wallet_discount_pct=wallet_pct,
             club_discount_pct=club_pct,
             max_price=max_price,
             min_delta=min_delta,
             is_active=is_active,
         )
-        return self._cached_settings
+        with self._cache_lock:
+            self._cached_settings = settings
+        return settings
 
     def calculate(
         self,

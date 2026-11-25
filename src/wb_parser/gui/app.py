@@ -19,8 +19,12 @@ import threading
 import webbrowser
 from datetime import datetime
 from pathlib import Path
-from tkinter import filedialog
 from typing import Any, Dict, List, Optional, Set
+
+try:
+    from tkinter import filedialog
+except ImportError:  # pragma: no cover
+    filedialog = None  # type: ignore[assignment]
 
 try:
     import customtkinter as ctk
@@ -130,7 +134,7 @@ class WBGUIApp:
 
     def __init__(self) -> None:
         if ctk is None:  # pragma: no cover
-            raise RuntimeError("customtkinter is required for GUI. Run: uv add customtkinter")
+            raise RuntimeError('customtkinter is required for GUI. Run: uv add "wb-sdk-pro[gui]"')
 
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")

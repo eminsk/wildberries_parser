@@ -1,8 +1,17 @@
 """
-Tests for Pydantic v2 models covering modern WB v4, legacy v1, and CDN `card.json` formats.
+Tests for typed WB SDK data models covering modern WB v4, legacy v1,
+CDN `card.json`, TOML/JSON config loading, and No-GIL thread safety.
 """
 
+from __future__ import annotations
+
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+from wb_parser.config import WBConfig
 from wb_parser.models import Feedback, Item, Items, WBProduct, WBSearchPage
+from wb_parser.shards import BasketRouter
+from wb_parser.tracker import WBPriceTracker
 
 
 def test_modern_sizes_price_extraction():
@@ -88,3 +97,32 @@ def test_legacy_item_and_price_drop():
     fb = Feedback.model_validate({"feedbackCountWithText": 42, "valuation": "4.9"})
     assert fb.feedback_count == 42
     assert fb.valuation_float == 4.9
+
+
+def test_toml_config_and_free_threaded_safety(tmp_path: Path):
+    toml_file = tmp_path / "wb.toml"
+    toml_file.write_text('[wildberries]\ndest = -1198055\nlimit = 50\n', encoding="utf-8")
+    cfg = WBConfig.from_file(toml_file)
+    assert cfg.dest == -1198055
+    assert cfg.limit == 50
+
+    router = BasketRouter()
+    tracker = WBPriceTracker(tmp_path / "threaded.db")
+
+    def _worker(idx: int) -> int:
+        host = router.resolve_host(141_217_830 + idx)
+        assert host.startswith("basket-")
+        prod = WBProduct.model_validate({
+            "nm_id": 100_000 + idx,
+            "imt_id": 200_000 + idx,
+            "imt_name": f"Товар {idx}",
+            "price": 1000.0 + idx,
+        })
+        tracker.track_products([prod])
+        dumped = prod.model_dump()
+        assert dumped["id"] == 100_000 + idx
+        return prod.id
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        ids = list(pool.map(_worker, range(24)))
+    assert len(ids) == 24

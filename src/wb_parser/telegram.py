@@ -9,7 +9,15 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-import httpx
+try:
+    import httpx
+except ImportError:  # pragma: no cover
+    httpx = None  # type: ignore[assignment]
+
+try:
+    import requests
+except ImportError:  # pragma: no cover
+    requests = None  # type: ignore[assignment]
 
 from wb_parser.models import WBProduct
 
@@ -62,18 +70,23 @@ class TelegramNotifier:
         """Send a plain/HTML message to configured Telegram chat."""
         if not self.bot_token or not self.chat_id:
             return False
+        url = f"{self.base_url}/sendMessage"
+        payload = {
+            "chat_id": self.chat_id,
+            "text": text,
+            "parse_mode": parse_mode,
+            "disable_web_page_preview": False,
+        }
         try:
-            with httpx.Client(proxy=self.proxy, timeout=self.timeout) as client:
-                r = client.post(
-                    f"{self.base_url}/sendMessage",
-                    json={
-                        "chat_id": self.chat_id,
-                        "text": text,
-                        "parse_mode": parse_mode,
-                        "disable_web_page_preview": False,
-                    },
-                )
+            if httpx is not None:
+                with httpx.Client(proxy=self.proxy, timeout=self.timeout) as client:
+                    r = client.post(url, json=payload)
+                    return r.status_code == 200
+            if requests is not None:
+                proxies = {"http": self.proxy, "https": self.proxy} if self.proxy else None
+                r = requests.post(url, json=payload, proxies=proxies, timeout=self.timeout)
                 return r.status_code == 200
+            return False
         except Exception as exc:
             logger.warning(f"Telegram send_message failed: {exc}")
             return False
@@ -86,15 +99,26 @@ class TelegramNotifier:
         """Upload an Excel / CSV / JSON report to Telegram chat."""
         if not self.bot_token or not self.chat_id or not filepath.exists():
             return False
+        url = f"{self.base_url}/sendDocument"
+        data = {"chat_id": self.chat_id, "caption": caption[:1024]}
         try:
-            with httpx.Client(proxy=self.proxy, timeout=max(30.0, self.timeout)) as client:
+            if httpx is not None:
+                with httpx.Client(proxy=self.proxy, timeout=max(30.0, self.timeout)) as client:
+                    with open(filepath, "rb") as f:
+                        r = client.post(url, data=data, files={"document": (filepath.name, f)})
+                    return r.status_code == 200
+            if requests is not None:
+                proxies = {"http": self.proxy, "https": self.proxy} if self.proxy else None
                 with open(filepath, "rb") as f:
-                    r = client.post(
-                        f"{self.base_url}/sendDocument",
-                        data={"chat_id": self.chat_id, "caption": caption[:1024]},
+                    r = requests.post(
+                        url,
+                        data=data,
                         files={"document": (filepath.name, f)},
+                        proxies=proxies,
+                        timeout=max(30.0, self.timeout),
                     )
                 return r.status_code == 200
+            return False
         except Exception as exc:
             logger.warning(f"Telegram send_document failed: {exc}")
             return False

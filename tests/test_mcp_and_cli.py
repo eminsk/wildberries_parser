@@ -2,6 +2,8 @@
 Tests for Native MCP JSON-RPC 2.0 Server (`wb-mcp`) and CLI subcommands (`wb-parser`).
 """
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 

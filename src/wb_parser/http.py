@@ -15,11 +15,26 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
-import httpx
+try:
+    import httpx
+except ImportError:  # pragma: no cover
+    httpx = None  # type: ignore[assignment]
+
+try:
+    import h2 as _h2  # noqa: F401
+    HTTP2_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    HTTP2_AVAILABLE = False
+
+try:
+    import requests as std_requests
+except ImportError:  # pragma: no cover
+    std_requests = None  # type: ignore[assignment]
 
 from wb_parser.exceptions import (
     WBAntiBotError,
@@ -165,28 +180,40 @@ class SyncWBTransport(BaseWBTransport):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        self._session_lock = threading.RLock()
         self._cffi_session = None
-        self._httpx_client: Optional[httpx.Client] = None
+        self._httpx_client: Optional[Any] = None
+        self._requests_session = None
         self._init_clients()
 
     def _init_clients(self) -> None:
-        if CURL_CFFI_AVAILABLE and cffi_requests is not None:
-            self._cffi_session = cffi_requests.Session(**self._cffi_kwargs())
-            if self.cookies_dict:
-                self._cffi_session.cookies.update(self.cookies_dict)
-        else:  # pragma: no cover
-            transport = (
-                httpx.HTTPTransport(local_address="0.0.0.0")
-                if self.force_ipv4
-                else None
-            )
-            self._httpx_client = httpx.Client(
-                http2=True,
-                timeout=httpx.Timeout(self.timeout),
-                proxy=self.proxy,
-                transport=transport,
-                cookies=self.cookies_dict or None,
-            )
+        with self._session_lock:
+            if CURL_CFFI_AVAILABLE and cffi_requests is not None:
+                self._cffi_session = cffi_requests.Session(**self._cffi_kwargs())
+                if self.cookies_dict:
+                    self._cffi_session.cookies.update(self.cookies_dict)
+            elif httpx is not None:  # pragma: no cover
+                transport = (
+                    httpx.HTTPTransport(local_address="0.0.0.0")
+                    if self.force_ipv4
+                    else None
+                )
+                self._httpx_client = httpx.Client(
+                    http2=HTTP2_AVAILABLE,
+                    timeout=httpx.Timeout(self.timeout),
+                    proxy=self.proxy,
+                    transport=transport,
+                    cookies=self.cookies_dict or None,
+                )
+            elif std_requests is not None:  # pragma: no cover
+                sess = std_requests.Session()
+                if self.cookies_dict:
+                    sess.cookies.update(self.cookies_dict)
+                if self.proxy:
+                    sess.proxies.update({"http": self.proxy, "https": self.proxy})
+                self._requests_session = sess
+            else:  # pragma: no cover
+                raise RuntimeError("Install `httpx` or `requests` to perform HTTP requests")
 
     def _raw_get(
         self,
@@ -203,8 +230,16 @@ class SyncWBTransport(BaseWBTransport):
                 content=r.content,
                 headers={k.lower(): v for k, v in r.headers.items()},
             )
-        assert self._httpx_client is not None
-        r = self._httpx_client.get(url, params=params, headers=req_headers)
+        if self._httpx_client is not None:
+            r = self._httpx_client.get(url, params=params, headers=req_headers)
+            return HttpResponse(
+                status_code=r.status_code,
+                text=r.text,
+                content=r.content,
+                headers={k.lower(): v for k, v in r.headers.items()},
+            )
+        assert self._requests_session is not None
+        r = self._requests_session.get(url, params=params, headers=req_headers, timeout=self.timeout)
         return HttpResponse(
             status_code=r.status_code,
             text=r.text,
@@ -216,15 +251,22 @@ class SyncWBTransport(BaseWBTransport):
         """Trigger proxy IP rotation URL if configured."""
         if not self.proxy_change_url:
             return False
-        try:
-            with httpx.Client(timeout=8.0) as c:
-                r = c.get(self.proxy_change_url)
-                logger.info(f"Proxy IP rotation requested: HTTP {r.status_code}")
+        with self._session_lock:
+            try:
+                if httpx is not None:
+                    with httpx.Client(timeout=8.0) as c:
+                        r = c.get(self.proxy_change_url)
+                        status_code = r.status_code
+                elif std_requests is not None:
+                    status_code = std_requests.get(self.proxy_change_url, timeout=8.0).status_code
+                else:
+                    return False
+                logger.info(f"Proxy IP rotation requested: HTTP {status_code}")
                 time.sleep(2.0)
-                return r.status_code < 400
-        except Exception as exc:
-            logger.warning(f"Proxy rotation request failed: {exc}")
-            return False
+                return status_code < 400
+            except Exception as exc:
+                logger.warning(f"Proxy rotation request failed: {exc}")
+                return False
 
     def get_json(
         self,
@@ -264,6 +306,13 @@ class SyncWBTransport(BaseWBTransport):
                 raise WBNetworkError(f"Request failed for {url}: {exc}") from exc
         raise WBNetworkError(f"Request failed for {url}: {last_exc}")
 
+    def _tls_name(self) -> str:
+        if self._cffi_session is not None:
+            return "curl_cffi"
+        if self._httpx_client is not None:
+            return "httpx"
+        return "requests"
+
     def ping(self, url: str = "https://cdn.wbbasket.ru/api/v3/upstreams") -> Dict[str, Any]:
         """Measure latency and HTTP status to a live WB endpoint (used in CLI/GUI diagnostics)."""
         t0 = time.perf_counter()
@@ -275,7 +324,7 @@ class SyncWBTransport(BaseWBTransport):
                 "status_code": resp.status_code,
                 "latency_ms": ms,
                 "bytes": len(resp.content),
-                "tls": "curl_cffi" if self._cffi_session else "httpx",
+                "tls": self._tls_name(),
             }
         except Exception as exc:
             ms = round((time.perf_counter() - t0) * 1000, 1)
@@ -284,20 +333,29 @@ class SyncWBTransport(BaseWBTransport):
                 "status_code": 0,
                 "latency_ms": ms,
                 "error": str(exc),
-                "tls": "curl_cffi" if self._cffi_session else "httpx",
+                "tls": self._tls_name(),
             }
 
     def close(self) -> None:
-        if self._cffi_session is not None:
-            try:
-                self._cffi_session.close()
-            except Exception:
-                pass
-        if self._httpx_client is not None:
-            try:
-                self._httpx_client.close()
-            except Exception:
-                pass
+        with self._session_lock:
+            if self._cffi_session is not None:
+                try:
+                    self._cffi_session.close()
+                except Exception:
+                    pass
+                self._cffi_session = None
+            if self._httpx_client is not None:
+                try:
+                    self._httpx_client.close()
+                except Exception:
+                    pass
+                self._httpx_client = None
+            if self._requests_session is not None:
+                try:
+                    self._requests_session.close()
+                except Exception:
+                    pass
+                self._requests_session = None
 
 
 class AsyncWBTransport(BaseWBTransport):
@@ -306,7 +364,7 @@ class AsyncWBTransport(BaseWBTransport):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._cffi_session = None
-        self._httpx_client: Optional[httpx.AsyncClient] = None
+        self._httpx_client: Optional[Any] = None
 
     async def _ensure_client(self) -> None:
         if self._cffi_session is not None or self._httpx_client is not None:
@@ -315,19 +373,21 @@ class AsyncWBTransport(BaseWBTransport):
             self._cffi_session = cffi_requests.AsyncSession(**self._cffi_kwargs())
             if self.cookies_dict:
                 self._cffi_session.cookies.update(self.cookies_dict)
-        else:  # pragma: no cover
+        elif httpx is not None:  # pragma: no cover
             transport = (
                 httpx.AsyncHTTPTransport(local_address="0.0.0.0")
                 if self.force_ipv4
                 else None
             )
             self._httpx_client = httpx.AsyncClient(
-                http2=True,
+                http2=HTTP2_AVAILABLE,
                 timeout=httpx.Timeout(self.timeout),
                 proxy=self.proxy,
                 transport=transport,
                 cookies=self.cookies_dict or None,
             )
+        else:  # pragma: no cover
+            raise RuntimeError("Install `httpx` or `curl-cffi` to use AsyncWBClient")
 
     async def _raw_get(
         self,

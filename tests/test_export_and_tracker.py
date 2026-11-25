@@ -2,6 +2,8 @@
 Tests for multi-format exporters (Excel, CSV, JSON, JSONL) and SQLite WBPriceTracker.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import openpyxl

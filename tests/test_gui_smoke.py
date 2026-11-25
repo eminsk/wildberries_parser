@@ -2,6 +2,8 @@
 GUI import, configuration persistence, and window smoke checks.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from wb_parser.gui.app import WBGUIConfig

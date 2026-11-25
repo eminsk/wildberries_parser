@@ -8,7 +8,7 @@ feedback collection (`feedbacks1` / `feedbacks2`), price tracking, and Excel exp
 
 from __future__ import annotations
 
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 
 from wb_parser.client import AsyncWBClient, ParseWB, WBClient, filter_products
 from wb_parser.config import DEST_CODES, DEFAULT_DEST, WBConfig

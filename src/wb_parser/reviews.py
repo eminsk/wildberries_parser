@@ -18,8 +18,17 @@ import re
 from collections import Counter
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-import httpx
-from pydantic import BaseModel, ConfigDict, Field
+try:
+    import httpx
+except ImportError:  # pragma: no cover
+    httpx = None  # type: ignore[assignment]
+
+try:
+    import requests
+except ImportError:  # pragma: no cover
+    requests = None  # type: ignore[assignment]
+
+from wb_parser._model import BaseModel, ConfigDict, Field
 
 from wb_parser.shards import calculate_feedback_shard, extract_nm_id
 
@@ -279,29 +288,35 @@ class SmartReviewAnalyzer:
         )
 
         endpoint = base_url.rstrip("/") + "/chat/completions"
+        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.2,
+        }
         try:
-            with httpx.Client(timeout=timeout) as http:
-                resp = http.post(
-                    endpoint,
-                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                    json={
-                        "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.2,
-                    },
-                )
+            if httpx is not None:
+                with httpx.Client(timeout=timeout) as http:
+                    resp = http.post(endpoint, headers=headers, json=payload)
+                    resp.raise_for_status()
+                    body = resp.json()
+            elif requests is not None:
+                resp = requests.post(endpoint, headers=headers, json=payload, timeout=timeout)
                 resp.raise_for_status()
-                raw_content = resp.json()["choices"][0]["message"]["content"]
-                m = re.search(r"\{.*\}", raw_content, re.DOTALL)
-                parsed = json.loads(m.group(0) if m else raw_content)
-                plus = [str(x).strip() for x in (parsed.get("plus") or []) if str(x).strip()]
-                minus = [str(x).strip() for x in (parsed.get("minus") or []) if str(x).strip()]
-                summary.ai_summary = {"plus": plus, "minus": minus}
-                if plus:
-                    summary.top_pros = plus
-                if minus:
-                    summary.top_cons = minus
-                summary.summary_mode = f"llm:{model}"
+                body = resp.json()
+            else:
+                raise RuntimeError("Install `httpx` or `requests` to call OpenAI-compatible endpoints")
+            raw_content = body["choices"][0]["message"]["content"]
+            m = re.search(r"\{.*\}", raw_content, re.DOTALL)
+            parsed = json.loads(m.group(0) if m else raw_content)
+            plus = [str(x).strip() for x in (parsed.get("plus") or []) if str(x).strip()]
+            minus = [str(x).strip() for x in (parsed.get("minus") or []) if str(x).strip()]
+            summary.ai_summary = {"plus": plus, "minus": minus}
+            if plus:
+                summary.top_pros = plus
+            if minus:
+                summary.top_cons = minus
+            summary.summary_mode = f"llm:{model}"
         except Exception as exc:
             logger.warning(f"LLM review summarization skipped ({exc}); using offline summary.")
         return summary

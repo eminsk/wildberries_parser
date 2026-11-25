@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Union
 
-from pydantic import BaseModel, Field
+from wb_parser._model import BaseModel, Field
 
 from wb_parser.shards import extract_nm_id
 
@@ -56,53 +57,57 @@ class WBRankTracker:
         self.client = client
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.RLock()
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(str(self.db_path))
+        conn = sqlite3.connect(str(self.db_path), timeout=30.0)
         conn.row_factory = sqlite3.Row
         return conn
 
     def _init_db(self) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS wb_rank_history (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    nm_id INTEGER NOT NULL,
-                    query TEXT NOT NULL,
-                    position INTEGER,
-                    page INTEGER,
-                    price REAL NOT NULL DEFAULT 0,
-                    checked_at TEXT NOT NULL
+        with self._lock:
+            with self._connect() as conn:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS wb_rank_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        nm_id INTEGER NOT NULL,
+                        query TEXT NOT NULL,
+                        position INTEGER,
+                        page INTEGER,
+                        price REAL NOT NULL DEFAULT 0,
+                        checked_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_wb_rank_nm_q ON wb_rank_history(nm_id, query)"
-            )
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_wb_rank_nm_q ON wb_rank_history(nm_id, query)"
+                )
 
     def _get_previous_position(self, nm_id: int, query: str) -> Optional[int]:
-        with self._connect() as conn:
-            row = conn.execute(
-                """
-                SELECT position FROM wb_rank_history
-                WHERE nm_id = ? AND query = ? AND position IS NOT NULL
-                ORDER BY id DESC LIMIT 1
-                """,
-                (nm_id, query),
-            ).fetchone()
-            return int(row["position"]) if row else None
+        with self._lock:
+            with self._connect() as conn:
+                row = conn.execute(
+                    """
+                    SELECT position FROM wb_rank_history
+                    WHERE nm_id = ? AND query = ? AND position IS NOT NULL
+                    ORDER BY id DESC LIMIT 1
+                    """,
+                    (nm_id, query),
+                ).fetchone()
+                return int(row["position"]) if row else None
 
     def _record_rank(self, res: RankResult) -> None:
-        with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO wb_rank_history (nm_id, query, position, page, price, checked_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (res.nm_id, res.query, res.position, res.page, res.price, res.checked_at),
-            )
+        with self._lock:
+            with self._connect() as conn:
+                conn.execute(
+                    """
+                    INSERT INTO wb_rank_history (nm_id, query, position, page, price, checked_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (res.nm_id, res.query, res.position, res.page, res.price, res.checked_at),
+                )
 
     def check_rank(
         self,
@@ -178,17 +183,18 @@ class WBRankTracker:
 
     def get_history(self, nm_id: int, query: Optional[str] = None, limit: int = 50) -> List[RankResult]:
         """Retrieve historical rank checks from SQLite."""
-        with self._connect() as conn:
-            if query:
-                rows = conn.execute(
-                    "SELECT * FROM wb_rank_history WHERE nm_id = ? AND query = ? ORDER BY id DESC LIMIT ?",
-                    (nm_id, query, limit),
-                ).fetchall()
-            else:
-                rows = conn.execute(
-                    "SELECT * FROM wb_rank_history WHERE nm_id = ? ORDER BY id DESC LIMIT ?",
-                    (nm_id, limit),
-                ).fetchall()
+        with self._lock:
+            with self._connect() as conn:
+                if query:
+                    rows = conn.execute(
+                        "SELECT * FROM wb_rank_history WHERE nm_id = ? AND query = ? ORDER BY id DESC LIMIT ?",
+                        (nm_id, query, limit),
+                    ).fetchall()
+                else:
+                    rows = conn.execute(
+                        "SELECT * FROM wb_rank_history WHERE nm_id = ? ORDER BY id DESC LIMIT ?",
+                        (nm_id, limit),
+                    ).fetchall()
 
         return [
             RankResult(

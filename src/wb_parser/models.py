@@ -1,5 +1,5 @@
 """
-Pydantic v2 data models for Wildberries Parser SDK.
+Typed data models for Wildberries Parser SDK.
 
 Supports both modern Wildberries v2/v4 schemas (`sizes[].price.product / basic`)
 and legacy catalog schemas (`salePriceU`, `priceU`), as well as direct `wbbasket.ru` CDN cards.
@@ -11,7 +11,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from wb_parser._model import BaseModel, ConfigDict, Field, model_validator
 
 
 def _extract_kopecks(val: Any) -> Optional[float]:

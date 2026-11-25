@@ -2,6 +2,8 @@
 Tests for BasketRouter, dynamic upstreams, feedback sharding, and URL classification.
 """
 
+from __future__ import annotations
+
 import pytest
 
 from wb_parser.exceptions import WBValidationError

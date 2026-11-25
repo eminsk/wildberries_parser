@@ -2,6 +2,8 @@
 Tests for WBClient, AsyncWBClient, ParseWB, filter_products, and WBAAS fallback behavior.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Dict, Optional
 
