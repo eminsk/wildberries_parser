@@ -1,4 +1,4 @@
-<h1 align="center">WB SDK Pro (`wb-parser-sdk`)</h1>
+<h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
   <b>All-in-One Wildberries Suite: Catalog Parser + WB Wallet Pricing + Search Rank Tracker + Smart Review Analyzer + Desktop GUI &amp; MCP Server</b>
 </p>
@@ -8,7 +8,8 @@
   <a href="https://github.com/eminsk/wildberries_parser/blob/master/README_RU.md">🇷🇺 Документация на русском</a>
 </p>
 
-[![Release](https://img.shields.io/badge/release-v2.1.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.1.0)
+[![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
+[![Release](https://img.shields.io/badge/release-v2.1.1-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.1.1)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20--%203.13+-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
 [![Tests](https://img.shields.io/badge/pytest-24%20passed-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
@@ -33,12 +34,23 @@
 
 ---
 
-## 📦 Installation (`uv` Recommended)
+## 📦 Installation (`uv` / `pip`)
 
+```bash
+# Using uv (recommended)
+uv add wb-sdk-pro
+
+# Or run GUI / CLI ephemerally via uvx
+uvx --from wb-sdk-pro wb-gui
+
+# Or via pip
+pip install wb-sdk-pro
+```
+
+From source:
 ```bash
 git clone https://github.com/eminsk/wildberries_parser.git
 cd wildberries_parser
-
 uv sync
 ```
 
@@ -147,8 +159,8 @@ uv run wb-parser drops --db wb_prices.db
 {
   "mcpServers": {
     "wildberries": {
-      "command": "uv",
-      "args": ["--directory", "C:/proekts/wildberries_parser", "run", "wb-mcp"]
+      "command": "uvx",
+      "args": ["--from", "wb-sdk-pro", "wb-mcp"]
     }
   }
 }

@@ -1143,8 +1143,8 @@ wheels = [
 ]
 
 [[package]]
-name = "wb-parser-sdk"
-version = "2.1.0"
+name = "wb-sdk-pro"
+version = "2.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "curl-cffi" },

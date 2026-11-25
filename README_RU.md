@@ -1,4 +1,4 @@
-<h1 align="center">WB SDK Pro (`wb-parser-sdk`)</h1>
+<h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
   <b>Единая экосистема для Wildberries: Парсер + WB Кошелёк + Позиции в поиске (Rank) + Умные отзывы + Desktop GUI + MCP-сервер</b>
 </p>
@@ -8,11 +8,11 @@
   <b>🇷🇺 Документация на русском</b>
 </p>
 
-> Современное объединение и глубокий рефакторинг трёх проектов (`wildberries_parser` + `wb_rank` + `wb_smart_review`) в единую модульную библиотеку на Python, 7-вкладочный тёмный Desktop GUI, CLI и нативный MCP-сервер.
+> Современное объединение и глубокий рефакторинг трёх проектов (`wildberries_parser` + `wb_rank` + `wb_smart_review`) в единую модульную библиотеку на Python (`uv add wb-sdk-pro`), 7-вкладочный тёмный Desktop GUI, CLI и нативный MCP-сервер.
 
 ---
 
-## 🚀 Что объединено в одном проекте (`v2.1.0`)
+## 🚀 Что объединено в одном проекте (`v2.1.1`)
 
 1. **Ядро парсера и CDN-роутер (`shards.py`, `client.py`, `http.py`):**
    - Исправлена маршрутизация отзывов **`feedbacks1` / `feedbacks2`** по точной формуле `root_id % 100 >= 50` (решение Issue #2).
@@ -36,8 +36,20 @@
 
 ---
 
-## 📦 Установка (через `uv`)
+## 📦 Установка (`uv` / `pip`)
 
+```bash
+# Через uv (рекомендуется)
+uv add wb-sdk-pro
+
+# Мгновенный запуск GUI без установки в проект
+uvx --from wb-sdk-pro wb-gui
+
+# Или через pip
+pip install wb-sdk-pro
+```
+
+Из исходников:
 ```bash
 git clone https://github.com/eminsk/wildberries_parser.git
 cd wildberries_parser
