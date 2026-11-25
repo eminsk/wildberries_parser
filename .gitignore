@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+.venv*/
+venv/
+env/
+
+# Distribution / packaging
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
+
+# Testing / caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Runtime / user outputs
+storage/
+result/
+*.db
+*.db-journal
+*.xlsx
+*.csv
+*.log
+
+# Local personal drafts / secrets
+_local_drafts/
+.env
+*.cookies
+wb_cookies.lwp
