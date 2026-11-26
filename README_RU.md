@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/assets/logo.png" width="140" alt="WB SDK Pro Logo">
+  <img src="assets/logo.png" width="140" alt="WB SDK Pro Logo">
 </p>
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
@@ -29,7 +29,7 @@
 > - ☕ **Поддержать разработку (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Проверить в TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_parser.png" alt="WB SDK Pro Desktop GUI — Вкладка Парсер" width="820">
+  <img src="docs/images/gui_parser.png" alt="WB SDK Pro Desktop GUI — Вкладка Парсер" width="820">
 </p>
 
 ---
@@ -244,13 +244,16 @@ uv run python run_gui.py
 * **✈️ Telegram & 📋 Журнал:** алерты через отдельный прокси для Telegram, **запуск интерактивного `WBTelegramBot` одной кнопкой** прямо из вкладки Telegram, живые логи и кнопка **`☕ Донат`** в шапке окна (`storage/gui_config.json`).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Каталог товаров и WB Кошелёк" width="820">
+  <img src="docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Каталог товаров и WB Кошелёк" width="820">
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_reviews_ai.png" alt="WB SDK Pro Desktop GUI — Умные отзывы и бесплатный AI g4f" width="820">
+  <img src="docs/images/gui_reviews_ai.png" alt="WB SDK Pro Desktop GUI — Умные отзывы и бесплатный AI g4f" width="820">
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_proxy.png" alt="WB SDK Pro Desktop GUI — Вкладка Прокси и MobileProxy" width="820">
+  <img src="docs/images/gui_telegram.png" alt="WB SDK Pro Desktop GUI — Интерактивный Telegram-бот" width="820">
+</p>
+<p align="center">
+  <img src="docs/images/gui_proxy.png" alt="WB SDK Pro Desktop GUI — Вкладка Прокси и MobileProxy" width="820">
 </p>
 
 ---

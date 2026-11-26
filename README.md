@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/assets/logo.png" width="140" alt="WB SDK Pro Logo">
+  <img src="assets/logo.png" width="140" alt="WB SDK Pro Logo">
 </p>
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
@@ -32,7 +32,7 @@
 > - ☕ **Support development (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_parser.png" alt="WB SDK Pro Desktop GUI — Parser & Filters" width="820">
+  <img src="docs/images/gui_parser.png" alt="WB SDK Pro Desktop GUI — Parser & Filters" width="820">
 </p>
 
 ---
@@ -284,13 +284,16 @@ uv run python run_gui.py
 6. **✈️ Telegram & 📋 Журнал**: Isolated Telegram proxy, test alert sender, **1-click interactive `🤖 Запустить Telegram-бота`** controller (`WBTelegramBot` polling), live execution logs (`storage/gui_config.json`), and **`☕ Донат`** support dialog in the top bar.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Catalog Feed & WB Wallet Pricing" width="820">
+  <img src="docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Catalog Feed & WB Wallet Pricing" width="820">
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_reviews_ai.png" alt="WB SDK Pro Desktop GUI — Smart Reviews & Free/Paid AI Engine" width="820">
+  <img src="docs/images/gui_reviews_ai.png" alt="WB SDK Pro Desktop GUI — Smart Reviews & Free/Paid AI Engine" width="820">
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_proxy.png" alt="WB SDK Pro Desktop GUI — Proxy, MobileProxy & Session Settings" width="820">
+  <img src="docs/images/gui_telegram.png" alt="WB SDK Pro Desktop GUI — Interactive Telegram Bot & Alerts" width="820">
+</p>
+<p align="center">
+  <img src="docs/images/gui_proxy.png" alt="WB SDK Pro Desktop GUI — Proxy, MobileProxy & Session Settings" width="820">
 </p>
 
 ---
