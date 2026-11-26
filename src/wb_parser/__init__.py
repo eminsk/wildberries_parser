@@ -16,7 +16,7 @@ Supports CPython 3.8-3.16, PyPy 3.8-3.12, and Free-Threaded No-GIL (3.13t-3.16t)
 
 from __future__ import annotations
 
-__version__ = "2.3.1"
+__version__ = "2.4.0"
 
 from wb_parser.ai import (
     AI_PROVIDER_PRESETS,
@@ -34,7 +34,16 @@ from wb_parser.ai import (
 )
 
 from wb_parser.client import AsyncWBClient, ParseWB, WBClient, filter_products
-from wb_parser.config import DEST_CODES, DEFAULT_DEST, WBConfig
+from wb_parser.config import (
+    DEFAULT_DEST,
+    DEST_CODES,
+    DONATE_TRONSCAN_URL,
+    DONATE_USDT_TRC20,
+    MOBILEPROXY_FREE_TRIAL_URL,
+    MOBILEPROXY_REFERRAL_URL,
+    WBConfig,
+    resolve_proxy_change_url,
+)
 from wb_parser.exceptions import (
     WBAntiBotError,
     WBError,
@@ -82,11 +91,15 @@ __all__ = [
     "DEFAULT_BASKET_RANGES",
     "DEFAULT_DEST",
     "DEST_CODES",
+    "DONATE_TRONSCAN_URL",
+    "DONATE_USDT_TRC20",
     "FREE_G4F_CANDIDATES",
     "Feedback",
     "FeedbackInfo",
     "Item",
     "Items",
+    "MOBILEPROXY_FREE_TRIAL_URL",
+    "MOBILEPROXY_REFERRAL_URL",
     "ParseWB",
     "PriceRecord",
     "RankResult",
@@ -121,6 +134,7 @@ __all__ = [
     "list_ai_providers",
     "quick_scan_ai_providers",
     "rank_results_to_excel",
+    "resolve_proxy_change_url",
     "test_ai_provider",
     "to_csv",
     "to_dataframe",

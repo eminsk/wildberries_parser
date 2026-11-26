@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wb-sdk-pro"
-version = "2.3.1"
+version = "2.4.0"
 description = "All-in-One Wildberries Sync/Async SDK, 12-command CLI, 9-tool MCP Server, Free/Paid AI (g4f, Ollama, OpenAI, DeepSeek, OpenRouter) & optional Desktop GUI ([gui]): CDN card extraction, feedbacks1/2 sharding, WB Wallet & Club pricing, Rank Tracker, and Smart Reviews"
 readme = "README.md"
 authors = [

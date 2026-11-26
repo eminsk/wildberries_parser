@@ -1,6 +1,9 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/assets/logo.png" width="140" alt="WB SDK Pro Logo">
+</p>
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
-  <b>Единая экосистема для Wildberries: Sync/Async SDK + CDN + WB Кошелёк + Позиции (Rank) + Умные отзывы + Бесплатные/Платные AI (`g4f` / Ollama / OpenAI / DeepSeek / OpenRouter) + 12 команд CLI + MCP (9 инструментов) + 7-Tab GUI</b>
+  <b>Единая экосистема для Wildberries: Sync/Async SDK + Автономное Windows .exe приложение + CDN + WB Кошелёк + Позиции (Rank) + Умные отзывы + Бесплатные/Платные AI (`g4f` / Ollama / OpenAI / DeepSeek / OpenRouter) + 12 команд CLI + MCP (9 инструментов)</b>
 </p>
 
 <p align="center">
@@ -8,7 +11,26 @@
   <b>🇷🇺 Документация на русском</b>
 </p>
 
-> Современное объединение 4 проектов (`wildberries_parser` с совместимостью `ParseWB` / `Item` / `Items` / `Feedback` + `wb_rank` + `wb_smart_review` + **`testg4f`**) в единую потокобезопасную библиотеку (`uv add wb-sdk-pro`), CLI на 12 подкоманд (`wb-parser` / `wb-sdk`), MCP-сервер (`wb-mcp`, 9 инструментов) и опциональный 7-вкладочный GUI (`wb-gui`).
+[![Release](https://img.shields.io/badge/релиз-v2.4.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.4.0)
+[![Бесплатный тест прокси 3 часа](https://img.shields.io/badge/Прокси_без_VPN-Тест_3_часа_бесплатно-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
+[![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
+[![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-Windows%20.exe%20%7C%207%20Вкладок-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser/blob/master/README_RU.md#%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9-%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D1%84%D0%B5%D0%B9%D1%81-desktop-gui--%D0%B0%D0%B2%D1%82%D0%BE%D0%BD%D0%BE%D0%BC%D0%BD%D1%8B%D0%B9-exe--7-%D0%B2%D0%BA%D0%BB%D0%B0%D0%B4%D0%BE%D0%BA)
+[![Telegram Канал](https://img.shields.io/badge/Telegram_Канал-@avito__sdk__pro-26A5E4?style=flat&logo=telegram&logoColor=white)](https://t.me/avito_sdk_pro)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
+
+> Современное объединение 4 проектов (`wildberries_parser` с совместимостью `ParseWB` / `Item` / `Items` / `Feedback` + `wb_rank` + `wb_smart_review` + **`testg4f`**) в единую потокобезопасную библиотеку (`uv add wb-sdk-pro`), CLI на 12 подкоманд (`wb-parser` / `wb-sdk`), MCP-сервер (`wb-mcp`, 9 инструментов), 7-вкладочный GUI (`wb-gui`) и **готовое Windows `.exe`-приложение (`WBSDK_Pro.exe`)**.
+
+> ### 🤝 Сообщество, мобильные прокси и поддержка
+> - 🌐 **Ошибка 498 (WBAAS) / 429 на поиске и каталогах?** Возьмите [бесплатный тест мобильного прокси на 3 часа](https://mobileproxy.rent/user.html?free&p=279117) ([личный кабинет MobileProxy](https://mobileproxy.rent/?p=279117) — работает в РФ без VPN).
+> - 📢 **Релизы, настройка прокси и чат:** подписывайтесь на [Telegram-канал @avito_sdk_pro](https://t.me/avito_sdk_pro).
+> - 🐛 **Нашли баг или изменился API WB?** [Откройте Issue](https://github.com/eminsk/wildberries_parser/issues) — исправления выходят оперативно!
+> - ⭐ **Полезен проект?** Поставьте звезду репозиторию на GitHub!
+> - ☕ **Поддержать разработку (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Проверить в TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_parser.png" alt="WB SDK Pro Desktop GUI — Вкладка Парсер" width="820">
+</p>
 
 ---
 
@@ -198,22 +220,57 @@ print(reply.provider, reply.tier, reply.content)
 
 ---
 
-## 🖥️ Графический интерфейс (Desktop GUI — 7 вкладок)
+## 🖥️ Графический интерфейс (Desktop GUI — автономный `.exe` + 7 вкладок)
 
+### 1. Запуск готового приложения для Windows (без установки Python):
+1. Скачайте архив **[WBSDK_Pro_Windows_x64.zip](https://github.com/eminsk/wildberries_parser/releases/latest)** из раздела [Releases](https://github.com/eminsk/wildberries_parser/releases).
+2. Распакуйте и запустите `WBSDK_Pro.exe` (внутри уже вшиты Chrome TLS `curl_cffi` и бесплатный AI-движок `g4f`).
+
+### 2. Или запуск через Python / PyPI:
 Требует установки опции `[gui]` (`uv add "wb-sdk-pro[gui]"` или `uv sync --extra gui`):
 
 ```bash
-uv run wb-gui
+uvx --from "wb-sdk-pro[gui]" wb-gui
 # или из исходников:
 uv run python run_gui.py
+# или двойным кликом по run_gui.bat
 ```
 
 * **🔍 Парсер:** ссылки на товары, артикулы, продавцы (`/seller/...`), поисковые запросы, фильтры цен/скидок/рейтинга и белых/чёрных ключевых слов, мониторинг 24/7.
 * **📦 Каталог товаров:** живые карточки с ценами, ценой по WB Кошельку (`💳`), снижением цены (`📉`) и экспортом в **Excel `.xlsx`**, CSV и JSON.
 * **📈 Позиции (Rank):** пакетная проверка пар `артикул : запрос`, выбор сортировки, история динамики (`▲`/`▼`), экспорт в Excel.
 * **💬 Умные отзывы + AI:** выбор режима (`Авто`, `Бесплатно g4f`, `Платный API`, `Локальный Ollama`, `Оффлайн`), выпадающий список провайдеров, поле модели, кнопка **⚡ Проверить AI** (диагностика как в `testg4f`) и мгновенная сводка **✅ Плюсы / ❌ Минусы**.
-* **🌐 Прокси и Сессия:** выбор региона (`dest`), прокси HTTP/SOCKS5, URL смены IP, `cookies` и `x_wbaas_token`, кнопка проверки пинга CDN и живых ставок WB Кошелька.
-* **✈️ Telegram & 📋 Журнал:** алерты через отдельный прокси для Telegram и живые логи (настройки сохраняются в `storage/gui_config.json`).
+* **🌐 Прокси и Сессия:** выбор региона (`dest`), прокси HTTP/SOCKS5, **URL/ключ смены IP MobileProxy.rent** (с кнопкой бесплатного 3-часового теста), `cookies` и `x_wbaas_token`, кнопка проверки пинга CDN и живых ставок WB Кошелька.
+* **✈️ Telegram & 📋 Журнал:** алерты через отдельный прокси для Telegram, живые логи и кнопка **`☕ Донат`** в шапке окна (`storage/gui_config.json`).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Каталог товаров и WB Кошелёк" width="820">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_reviews_ai.png" alt="WB SDK Pro Desktop GUI — Умные отзывы и бесплатный AI g4f" width="820">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_proxy.png" alt="WB SDK Pro Desktop GUI — Вкладка Прокси и MobileProxy" width="820">
+</p>
+
+---
+
+## 🌐 Выбор и настройка сетевых прокси
+
+Прямые карточки `wbbasket.ru` (`card.json`, `.webp`) и отзывы `feedbacks1/2` работают **без прокси**. Для поиска, витрин продавцов и многопоточного мониторинга без ограничений WBAAS `498`/`429`:
+
+1. **Серверные статические (IPv4 / SOCKS5 — от 30–50 ₽/мес):** подходят для 1–3 запросов в спокойном режиме.
+2. **Оплата за трафик (Pay-As-You-Go — ~200 ₽/ГБ):** [AstroProxy](https://astroproxy.com), [Asocks](https://asocks.com) — экономичный расход только под JSON/HTML.
+3. **Выделенные 4G/LTE модемы с ротацией IP (рекомендуется):** [MobileProxy (mobileproxy.rent)](https://mobileproxy.rent/?p=279117) ([бесплатный тест 3 часа без VPN](https://mobileproxy.rent/user.html?free&p=279117)):
+   ```python
+   from wb_parser import WBClient
+
+   with WBClient(
+       proxy="http://login:password@proxy-domain.space:port",
+       mobileproxy_key="ВАШ_КЛЮЧ_РОТАЦИИ",  # подставит URL changeip.mobileproxy.space автоматически
+   ) as wb:
+       items = wb.search("кроссовки", max_pages=3)
+   ```
 
 ---
 
@@ -278,4 +335,17 @@ uv run wb-parser gui
 uv run pytest
 ```
 
-**34 теста** подтверждены на всех версиях Python в GitHub Actions на **Linux, Windows и macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12): шардинг, модели, TOML/JSON-конфиг, sync/async клиенты, WB Кошелёк, ранжирование, отзывы, Free/Paid AI-движок (`g4f`, Ollama/`OLLAMA_BASE_URL`, OpenAI/DeepSeek/Groq), Excel/CSV, 9 инструментов MCP, 12 команд CLI, GUI и потокобезопасность без GIL.
+**35 тестов** подтверждены на всех версиях Python в GitHub Actions на **Linux, Windows и macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12): шардинг, модели, TOML/JSON-конфиг, sync/async клиенты, MobileProxy-ротация, WB Кошелёк, ранжирование, отзывы, Free/Paid AI-движок (`g4f`, Ollama/`OLLAMA_BASE_URL`, OpenAI/DeepSeek/Groq), Excel/CSV, 9 инструментов MCP, 12 команд CLI, GUI (включая иконки и `.exe`) и потокобезопасность без GIL.
+
+---
+
+## ☕ Поддержать проект (Донат)
+
+Если библиотека помогает в работе или экономит время разработки:
+* ⭐ Поставьте звезду на [GitHub](https://github.com/eminsk/wildberries_parser)
+* 🌐 Воспользуйтесь партнёрской ссылкой: [MobileProxy — 3 часа бесплатно без VPN](https://mobileproxy.rent/user.html?free&p=279117)
+* 💎 **USDT (TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Проверить в TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
+
+## 📄 Лицензия
+
+MIT License.

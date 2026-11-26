@@ -1,6 +1,9 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/assets/logo.png" width="140" alt="WB SDK Pro Logo">
+</p>
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
-  <b>All-in-One Wildberries Suite: Sync/Async SDK + CDN Engine + WB Wallet + Rank Tracker + Smart Reviews + Free/Paid AI (g4f / Ollama / OpenAI / DeepSeek / OpenRouter) + 12 CLI + 9 MCP Tools + 7-Tab GUI</b>
+  <b>All-in-One Wildberries Suite: Sync/Async SDK + Standalone Windows .exe GUI + CDN Engine + WB Wallet + Rank Tracker + Smart Reviews + Free/Paid AI (g4f / Ollama / OpenAI / DeepSeek / OpenRouter) + 12 CLI + 9 MCP Tools</b>
 </p>
 
 <p align="center">
@@ -8,16 +11,29 @@
   <a href="https://github.com/eminsk/wildberries_parser/blob/master/README_RU.md">🇷🇺 Документация на русском</a>
 </p>
 
+[![Release](https://img.shields.io/badge/release-v2.4.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.4.0)
+[![Free 3h Proxy Trial](https://img.shields.io/badge/Mobile_Proxy-Free_3h_Trial_(No_VPN)-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
 [![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
-[![Release](https://img.shields.io/badge/release-v2.3.1-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.3.1)
 [![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-34%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
-[![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-7%20Tabs%20%7C%20CustomTkinter-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
+[![Tests](https://img.shields.io/badge/pytest-35%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-Windows%20.exe%20%7C%207%20Tabs-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
 [![MCP Server](https://img.shields.io/badge/MCP-9%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
+[![Telegram Channel](https://img.shields.io/badge/Telegram_Channel-@avito__sdk__pro-26A5E4?style=flat&logo=telegram&logoColor=white)](https://t.me/avito_sdk_pro)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
-> **Unified 4-in-1 Wildberries Architecture** combining `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` + **`testg4f` Hybrid Free/Paid AI Engine** into one pure-Python Sync/Async SDK, 12-command CLI (`wb-parser` / `wb-sdk`), 9-tool MCP Server (`wb-mcp`), and optional 7-tab Desktop GUI (`wb-gui`).
+> **Unified 4-in-1 Wildberries Architecture** combining `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` + **`testg4f` Hybrid Free/Paid AI Engine** into one pure-Python Sync/Async SDK, 12-command CLI (`wb-parser` / `wb-sdk`), 9-tool MCP Server (`wb-mcp`), 7-tab Desktop GUI (`wb-gui`), and **Standalone Windows `x64` `.exe` App** (`WBSDK_Pro.exe`).
+
+> ### 🤝 Community, Mobile Proxies & Support
+> - 🌐 **Getting 498 (WBAAS) / 429 on search & catalogs?** Claim a [3-Hour Free Mobile Proxy Trial](https://mobileproxy.rent/user.html?free&p=279117) ([MobileProxy Portal](https://mobileproxy.rent/?p=279117) — works in Russia without VPN).
+> - 📢 **Releases, proxy setups & community chat:** Join our [Telegram Channel (@avito_sdk_pro)](https://t.me/avito_sdk_pro).
+> - 🐛 **Found a bug or layout change?** Please [Open an Issue](https://github.com/eminsk/wildberries_parser/issues) — fixes are prioritized!
+> - ⭐ **Find this SDK useful?** Give it a star on GitHub — it helps more developers discover the library!
+> - ☕ **Support development (USDT TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_parser.png" alt="WB SDK Pro Desktop GUI — Parser & Filters" width="820">
+</p>
 
 ---
 
@@ -233,23 +249,57 @@ ParseWB("https://www.wildberries.ru/seller/626520", output_path="seller.xlsx").p
 ---
 
 <a id="desktop-gui"></a>
-## 🖥️ Desktop GUI (`WB SDK Pro` — 7 Tabs)
+## 🖥️ Desktop GUI (`WB SDK Pro` — Standalone `.exe` + 7 Tabs)
 
-Install with `[gui]` extra (`uv add "wb-sdk-pro[gui]"` or `uv sync --extra gui`), then launch:
+### 1. Download Standalone Windows App (No Python Required):
+1. Download **[WBSDK_Pro_Windows_x64.zip](https://github.com/eminsk/wildberries_parser/releases/latest)** from [Releases](https://github.com/eminsk/wildberries_parser/releases).
+2. Unpack and launch `WBSDK_Pro.exe` (includes bundled Chrome TLS `curl_cffi` and Free `g4f` AI engine out of the box!).
+
+### 2. Or Launch via Python / PyPI:
+Install with `[gui]` extra (`uv add "wb-sdk-pro[gui]"` or `uv sync --extra gui`):
 
 ```bash
-uv run wb-gui
+uvx --from "wb-sdk-pro[gui]" wb-gui
 # or from cloned repo:
 uv run python run_gui.py
+# or double-click run_gui.bat
 ```
 
 1. **🔍 Парсер**: Scrape product links, `nm_id` articles, `/seller/...` stores, or search queries with price/discount/rating/whitelist/blacklist keyword filters and 24/7 loop monitoring.
 2. **📦 Каталог товаров**: Live cards displaying price, `💳 WB Wallet` price, discount badge, price drop alert (`📉`), clickable *"Открыть на WB ↗"*, and 1-click export to **Excel `.xlsx`**, **CSV**, and **JSON**.
 3. **📈 Позиции (Rank)**: Paste `nm_id : keyword` pairs, choose sort order (`popular`, `pricedown`, `priceup`, `rate`, `newly`), scan pages `1..N`, see position movement (`▲`/`▼`), and export rank reports to Excel.
 4. **💬 Умные отзывы + AI**: Enter any WB URL or `nm_id` to extract buyer reviews, rating histogram, size fit stats, and **✅ Pros** & **❌ Cons** using Offline mode, **Free zero-key AI (`g4f` Auto / `Yqcloud` / `Airforce` / ...)**, **Local (`Ollama` / `LM Studio`)**, or **Paid APIs (`OpenAI` / `DeepSeek` / `OpenRouter` / `ProxyAPI` / `Groq` / `Gemini`)** with a built-in **`⚡ Проверить AI`** health-check button.
-5. **🌐 Прокси и Сессия**: Choose delivery region (`dest`), configure HTTP/SOCKS5 proxy, MobileProxy rotation URL, cookies/`x_wbaas_token`, and ping CDN + live WB Wallet discount rates in 1 click.
-6. **✈️ Telegram**: Forward product cards & alerts via a decoupled Telegram proxy.
-7. **📋 Журнал**: Live execution log (all settings persist in `storage/gui_config.json`).
+5. **🌐 Прокси и Сессия**: Choose delivery region (`dest`), configure HTTP/SOCKS5 proxy, **MobileProxy.rent 4G rotation URL/key** (with 1-click 3h Free Trial button), cookies/`x_wbaas_token`, and ping CDN + live WB Wallet discount rates in 1 click.
+6. **✈️ Telegram & 📋 Журнал**: Forward product cards & alerts via a decoupled Telegram proxy and inspect live logs (all settings persist in `storage/gui_config.json`, plus **`☕ Донат`** support dialog in the top bar).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Catalog Feed & WB Wallet Pricing" width="820">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_reviews_ai.png" alt="WB SDK Pro Desktop GUI — Smart Reviews & Free/Paid AI Engine" width="820">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_proxy.png" alt="WB SDK Pro Desktop GUI — Proxy, MobileProxy & Session Settings" width="820">
+</p>
+
+---
+
+## 🌐 Choosing & Configuring Proxies
+
+Direct `wbbasket.ru` CDN cards and `feedbacks1/2` reviews work **without proxies**. For heavy catalog searches (`__internal/u-search`), seller catalogs, or multi-threaded scraping without WBAAS `498`/`429` limits:
+
+* **Static Server IPv4 / SOCKS5 (~$0.50/mo):** Works for calm single-thread monitoring (`http://user:pass@ip:port`).
+* **Pay-As-You-Go Mobile Proxies (~$2.50/GB):** [AstroProxy](https://astroproxy.com) or [Asocks](https://asocks.com) — billed only for lightweight JSON traffic.
+* **Dedicated 4G/LTE Modems with Instant IP Rotation (Recommended):** [MobileProxy.rent / MobileProxy.space](https://mobileproxy.rent/?p=279117) ([Claim Free 3-Hour Trial](https://mobileproxy.rent/user.html?free&p=279117)):
+  ```python
+  from wb_parser import WBClient
+
+  with WBClient(
+      proxy="http://login:password@proxy-domain.space:port",
+      mobileproxy_key="YOUR_ROTATION_KEY",  # automatically expands to changeip.mobileproxy.space
+  ) as wb:
+      items = wb.search("кроссовки", max_pages=3)
+  ```
 
 ---
 
@@ -334,7 +384,14 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**34 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama/`OLLAMA_BASE_URL`) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (12 commands), GUI config/missing-extra handling, and No-GIL thread safety.
+**35 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, MobileProxy key resolution, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama/`OLLAMA_BASE_URL`) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (12 commands), GUI config/assets/missing-extra handling, and No-GIL thread safety.
+
+## ☕ Support & Donations
+
+If `wb-sdk-pro` helps automate your analytics or saves development time:
+* ⭐ Star the repository on [GitHub](https://github.com/eminsk/wildberries_parser)
+* 🌐 Use our partner link for [3-Hour Free Mobile Proxy Trial (No VPN)](https://mobileproxy.rent/user.html?free&p=279117)
+* 💎 **USDT (TRC-20):** `TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P` ([Verify on TronScan](https://tronscan.org/#/address/TDVbEdnpgNgoAhNcn1EwXxWHiR3RKLit5P))
 
 ## 📄 License
 

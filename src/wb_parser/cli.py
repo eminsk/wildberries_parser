@@ -54,6 +54,7 @@ def _build_client(args: argparse.Namespace) -> WBClient:
         dest=int(dest_val),
         proxy=getattr(args, "proxy", None),
         proxy_change_url=getattr(args, "proxy_change_url", None),
+        mobileproxy_key=getattr(args, "mobileproxy_key", None),
         cookies=getattr(args, "cookies", None),
         wbaas_token=getattr(args, "wbaas_token", None),
         tracker_db=getattr(args, "db", None),
@@ -64,6 +65,7 @@ def _add_network_args(subparser: argparse.ArgumentParser, *, db_default: Optiona
     subparser.add_argument("--dest", default=str(DEFAULT_DEST), help="WB region destination ID or city name")
     subparser.add_argument("--proxy", default=None, help="Proxy URL (http://user:pass@ip:port or socks5://...)")
     subparser.add_argument("--proxy-change-url", default=None, help="Mobile proxy rotation URL")
+    subparser.add_argument("--mobileproxy-key", default=None, help="MobileProxy.rent/space API rotation key")
     subparser.add_argument("--cookies", default=None, help="Optional browser Cookie header string")
     subparser.add_argument("--wbaas-token", default=None, help="Optional x-wbaas-token header")
     subparser.add_argument("--db", default=db_default, help="SQLite price history path")
@@ -328,6 +330,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         srv = WBMCPServer(
             proxy=args.proxy,
             proxy_change_url=args.proxy_change_url,
+            mobileproxy_key=args.mobileproxy_key,
             cookies=args.cookies,
             wbaas_token=args.wbaas_token,
             tracker_db=args.db,

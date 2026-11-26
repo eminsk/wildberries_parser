@@ -1,3 +1,13 @@
+python-wb-sdk-pro (2.4.0-1) unstable; urgency=medium
+
+  * Standalone Windows x64 Desktop App (PyInstaller `WBSDK_Pro.spec` + `build-windows.yml`),
+    custom app icon/logo (`assets/icon.ico`, `assets/logo.png`), taskbar AppUserModelID,
+    and real Desktop GUI screenshots in documentation.
+  * Native MobileProxy.rent/space partner & 3-hour free trial links (`mobileproxy_key` CLI/SDK/MCP
+    + clickable Proxy tab buttons) and USDT TRC-20 Donate/Support modal + `.github/FUNDING.yml`.
+
+ -- eminsk <M_N_Nik@yahoo.com>  Thu, 26 Nov 2026 01:30:00 +0000
+
 python-wb-sdk-pro (2.3.1-1) unstable; urgency=medium
 
   * Use daemon threads in `wb_parser.ai` timeouts and parallel `--quick-scan`

@@ -17,7 +17,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
-from wb_parser.config import DEFAULT_DEST, UPSTREAMS_URL
+from wb_parser.config import DEFAULT_DEST, UPSTREAMS_URL, resolve_proxy_change_url
 from wb_parser.exceptions import (
     WBAntiBotError,
     WBNetworkError,
@@ -175,6 +175,7 @@ class WBClient:
         lang: str = "ru",
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        mobileproxy_key: Optional[str] = None,
         cookies: Optional[str] = None,
         wbaas_token: Optional[str] = None,
         timeout: float = 12.0,
@@ -188,9 +189,10 @@ class WBClient:
         self.currency = currency
         self.lang = lang
         self.router = BasketRouter()
+        resolved_change_url = resolve_proxy_change_url(proxy_change_url, mobileproxy_key)
         self.transport = transport or SyncWBTransport(
             proxy=proxy,
-            proxy_change_url=proxy_change_url,
+            proxy_change_url=resolved_change_url,
             cookies=cookies,
             wbaas_token=wbaas_token,
             timeout=timeout,
@@ -710,6 +712,7 @@ class AsyncWBClient:
         lang: str = "ru",
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        mobileproxy_key: Optional[str] = None,
         cookies: Optional[str] = None,
         wbaas_token: Optional[str] = None,
         timeout: float = 12.0,
@@ -723,9 +726,10 @@ class AsyncWBClient:
         self.currency = currency
         self.lang = lang
         self.router = BasketRouter()
+        resolved_change_url = resolve_proxy_change_url(proxy_change_url, mobileproxy_key)
         self.transport = transport or AsyncWBTransport(
             proxy=proxy,
-            proxy_change_url=proxy_change_url,
+            proxy_change_url=resolved_change_url,
             cookies=cookies,
             wbaas_token=wbaas_token,
             timeout=timeout,

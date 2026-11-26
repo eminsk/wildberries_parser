@@ -35,7 +35,18 @@ except ImportError:  # pragma: no cover
 from wb_parser import __version__
 from wb_parser.ai import AI_PROVIDER_PRESETS, test_ai_provider
 from wb_parser.client import WBClient, filter_products
-from wb_parser.config import DEFAULT_DEST, DEST_CODES, ISSUES_URL, TELEGRAM_CHANNEL_URL
+from wb_parser.config import (
+    DEFAULT_DEST,
+    DEST_CODES,
+    DONATE_TRONSCAN_URL,
+    DONATE_USDT_TRC20,
+    ISSUES_URL,
+    MOBILEPROXY_FREE_TRIAL_URL,
+    MOBILEPROXY_REFERRAL_URL,
+    REPO_URL,
+    TELEGRAM_CHANNEL_URL,
+    resolve_proxy_change_url,
+)
 from wb_parser.exceptions import WBAntiBotError
 from wb_parser.export import rank_results_to_excel, to_csv, to_excel, to_json
 from wb_parser.http import CURL_CFFI_AVAILABLE
@@ -52,6 +63,21 @@ def _get_base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
     return Path(__file__).resolve().parent.parent.parent.parent
+
+
+def _resolve_asset(filename: str) -> Optional[Path]:
+    """Locate a bundled GUI asset cleanly across PyInstaller, wheel install, and source tree."""
+    candidates: List[Path] = []
+    if hasattr(sys, "_MEIPASS"):
+        candidates.append(Path(getattr(sys, "_MEIPASS")) / "assets" / filename)
+    candidates.extend([
+        _get_base_dir() / "assets" / filename,
+        Path(__file__).resolve().parent / "assets" / filename,
+    ])
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 class WBGUIConfig:
@@ -149,6 +175,33 @@ class WBGUIApp:
         self.root.geometry("1160x780")
         self.root.minsize(980, 660)
 
+        if sys.platform.startswith("win"):
+            try:
+                import ctypes
+
+                ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                    f"eminsk.wbsdkpro.desktop.{__version__}"
+                )
+            except Exception:
+                pass
+
+        self._app_photo_icon = None
+        ico_path = _resolve_asset("icon.ico")
+        if ico_path:
+            try:
+                self.root.iconbitmap(str(ico_path))
+            except Exception:
+                pass
+        png_path = _resolve_asset("icon.png")
+        if png_path:
+            try:
+                from PIL import Image, ImageTk
+
+                self._app_photo_icon = ImageTk.PhotoImage(Image.open(png_path))
+                self.root.iconphoto(True, self._app_photo_icon)
+            except Exception:
+                pass
+
         self.config = WBGUIConfig.load()
         self.worker_thread: Optional[threading.Thread] = None
         self.stop_event = threading.Event()
@@ -207,12 +260,29 @@ class WBGUIApp:
         header = ctk.CTkFrame(self.root, corner_radius=0, height=64, fg_color="#1a1625")
         header.pack(fill="x", side="top")
 
+        self.header_logo = None
+        logo_path = _resolve_asset("icon.png")
+        if logo_path:
+            try:
+                from PIL import Image
+
+                self.header_logo = ctk.CTkImage(
+                    light_image=Image.open(logo_path),
+                    dark_image=Image.open(logo_path),
+                    size=(38, 38),
+                )
+            except Exception:
+                pass
+
+        if self.header_logo:
+            ctk.CTkLabel(header, image=self.header_logo, text="").pack(side="left", padx=(16, 8), pady=12)
+
         ctk.CTkLabel(
             header,
             text="WB SDK PRO",
             font=ctk.CTkFont(size=20, weight="bold"),
             text_color="#c084fc",
-        ).pack(side="left", padx=(20, 8), pady=14)
+        ).pack(side="left", padx=(0 if self.header_logo else 20, 8), pady=14)
 
         tls_label = "Chrome TLS (curl_cffi)" if CURL_CFFI_AVAILABLE else "Standard HTTP/2"
         ctk.CTkLabel(
@@ -241,11 +311,22 @@ class WBGUIApp:
             header,
             text="✈️ Telegram",
             url=TELEGRAM_CHANNEL_URL,
-            width=110,
+            width=105,
             height=28,
             fg_color="#0284c7",
             hover_color="#0369a1",
             font=ctk.CTkFont(size=12, weight="bold"),
+        ).pack(side="right", padx=(6, 0), pady=16)
+
+        ctk.CTkButton(
+            header,
+            text="☕ Донат",
+            width=95,
+            height=28,
+            fg_color="#ca8a04",
+            hover_color="#a16207",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._show_donate_dialog,
         ).pack(side="right", padx=(6, 0), pady=16)
 
         self.status_pill = ctk.CTkLabel(
@@ -634,8 +715,11 @@ class WBGUIApp:
             text="Введите артикул и нажмите «Анализировать отзывы» (работает напрямую через CDN + feedbacks1/2 без прокси)",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color="#cbd5e1",
+            anchor="w",
+            justify="left",
+            wraplength=1080,
         )
-        self.lbl_review_kpi.pack(anchor="w", padx=14, pady=(2, 4))
+        self.lbl_review_kpi.pack(anchor="w", fill="x", padx=14, pady=(2, 4))
 
         split = ctk.CTkFrame(self.tab_reviews, fg_color="transparent", height=185)
         split.pack(fill="x", padx=10, pady=4)
@@ -668,7 +752,43 @@ class WBGUIApp:
             frame,
             text="Настройка прокси, региона (dest) и опциональной браузерной сессии:",
             font=ctk.CTkFont(size=14, weight="bold"),
-        ).pack(anchor="w", padx=16, pady=(14, 10))
+        ).pack(anchor="w", padx=16, pady=(14, 4))
+
+        ctk.CTkLabel(
+            frame,
+            text="Поддерживаются: Серверные IPv4/SOCKS5, AstroProxy, Asocks, MobileProxy.rent (4G/LTE модемы с ротацией) или прямой CDN-режим.",
+            font=ctk.CTkFont(size=11),
+            text_color="#94a3b8",
+        ).pack(anchor="w", padx=16, pady=(0, 8))
+
+        promo_frame = ctk.CTkFrame(frame, fg_color="#1e293b", corner_radius=8)
+        promo_frame.pack(fill="x", padx=16, pady=(0, 10))
+        ctk.CTkLabel(
+            promo_frame,
+            text="🌐 Нужен надёжный мобильный 4G прокси с ротацией IP без 498/429 банов?",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#f8fafc",
+        ).pack(side="left", padx=12, pady=8)
+        self._make_link_button(
+            promo_frame,
+            text="MobileProxy.rent ↗",
+            url=MOBILEPROXY_REFERRAL_URL,
+            width=155,
+            height=28,
+            fg_color="#e11d48",
+            hover_color="#be123c",
+            font=ctk.CTkFont(size=11, weight="bold"),
+        ).pack(side="right", padx=(6, 12), pady=8)
+        self._make_link_button(
+            promo_frame,
+            text="🎁 Тест 3ч бесплатно",
+            url=MOBILEPROXY_FREE_TRIAL_URL,
+            width=150,
+            height=28,
+            fg_color="#0f766e",
+            hover_color="#115e59",
+            font=ctk.CTkFont(size=11, weight="bold"),
+        ).pack(side="right", padx=(6, 0), pady=8)
 
         # Region dropdown
         reg_row = ctk.CTkFrame(frame, fg_color="transparent")
@@ -684,11 +804,13 @@ class WBGUIApp:
         self.entry_proxy = ctk.CTkEntry(prx_row, placeholder_text="http://user:pass@ip:port или socks5://...", width=420)
         self.entry_proxy.pack(side="left", padx=6)
 
-        # Rotation URL
+        # Rotation URL / key
         rot_row = ctk.CTkFrame(frame, fg_color="transparent")
         rot_row.pack(fill="x", padx=16, pady=6)
-        ctk.CTkLabel(rot_row, text="URL смены IP (MobileProxy):", width=200, anchor="w").pack(side="left")
-        self.entry_proxy_rotate = ctk.CTkEntry(rot_row, placeholder_text="https://changeip.mobileproxy.space/...", width=420)
+        ctk.CTkLabel(rot_row, text="URL или ключ MobileProxy:", width=200, anchor="w").pack(side="left")
+        self.entry_proxy_rotate = ctk.CTkEntry(
+            rot_row, placeholder_text="https://changeip.mobileproxy.space/?proxy_key=... или сам proxy_key", width=420
+        )
         self.entry_proxy_rotate.pack(side="left", padx=6)
 
         # Cookies & x-wbaas-token
@@ -972,7 +1094,7 @@ class WBGUIApp:
             with WBClient(
                 dest=dest,
                 proxy=cfg.proxy_string or None,
-                proxy_change_url=cfg.proxy_change_url or None,
+                proxy_change_url=resolve_proxy_change_url(cfg.proxy_change_url),
                 cookies=cfg.cookies or None,
                 wbaas_token=cfg.wbaas_token or None,
                 tracker_db=str(_get_base_dir() / "storage" / "wb_prices.db"),
@@ -1052,7 +1174,7 @@ class WBGUIApp:
         return WBClient(
             dest=DEST_CODES.get(cfg.dest_name, DEFAULT_DEST),
             proxy=cfg.proxy_string or None,
-            proxy_change_url=cfg.proxy_change_url or None,
+            proxy_change_url=resolve_proxy_change_url(cfg.proxy_change_url),
             cookies=cfg.cookies or None,
             wbaas_token=cfg.wbaas_token or None,
             tracker_db=str(_get_base_dir() / "storage" / "wb_prices.db"),
@@ -1306,6 +1428,67 @@ class WBGUIApp:
         if path:
             to_json(self.discovered_items, path)
             self._log(f"Экспортировано в JSON: {path}")
+
+    def _show_donate_dialog(self) -> None:
+        win = ctk.CTkToplevel(self.root)
+        win.title("☕ Поддержать WB SDK Pro")
+        win.geometry("540x285")
+        win.resizable(False, False)
+        win.transient(self.root)
+        win.grab_set()
+        if self._app_photo_icon:
+            try:
+                win.iconphoto(False, self._app_photo_icon)
+            except Exception:
+                pass
+
+        ctk.CTkLabel(
+            win,
+            text="☕ Поддержать разработку WB SDK Pro",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color="#facc15",
+        ).pack(pady=(16, 6))
+        ctk.CTkLabel(
+            win,
+            text="Проект полностью открыт (MIT). Вы можете поддержать обновления и развитие:",
+            font=ctk.CTkFont(size=12),
+            text_color="#cbd5e1",
+        ).pack(pady=(0, 12))
+
+        ctk.CTkLabel(win, text="USDT (TRC-20):", font=ctk.CTkFont(size=12, weight="bold")).pack()
+        addr = ctk.CTkEntry(win, width=410, justify="center")
+        addr.insert(0, DONATE_USDT_TRC20)
+        addr.configure(state="readonly")
+        addr.pack(pady=6)
+
+        lbl_copied = ctk.CTkLabel(win, text="", font=ctk.CTkFont(size=11), text_color="#22c55e")
+        lbl_copied.pack(pady=2)
+
+        def copy_addr() -> None:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(DONATE_USDT_TRC20)
+            lbl_copied.configure(text="✅ Адрес USDT TRC-20 скопирован!")
+
+        row = ctk.CTkFrame(win, fg_color="transparent")
+        row.pack(pady=10)
+        ctk.CTkButton(row, text="📋 Скопировать USDT", width=155, fg_color="#16a34a", command=copy_addr).pack(
+            side="left", padx=5
+        )
+        self._make_link_button(row, text="🔍 TronScan", url=DONATE_TRONSCAN_URL, width=110, fg_color="#0284c7").pack(
+            side="left", padx=5
+        )
+        self._make_link_button(
+            row, text="🎁 Прокси 3ч", url=MOBILEPROXY_FREE_TRIAL_URL, width=120, fg_color="#0f766e"
+        ).pack(side="left", padx=5)
+
+        row2 = ctk.CTkFrame(win, fg_color="transparent")
+        row2.pack(pady=(2, 10))
+        self._make_link_button(row2, text="✈ @avito_sdk_pro", url=TELEGRAM_CHANNEL_URL, width=150, fg_color="#334155").pack(
+            side="left", padx=5
+        )
+        self._make_link_button(row2, text="⭐ GitHub Repo", url=REPO_URL, width=140, fg_color="#334155").pack(
+            side="left", padx=5
+        )
 
     def _clear_feed(self) -> None:
         for child in self.feed_scroll.winfo_children():

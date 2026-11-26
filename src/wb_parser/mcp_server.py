@@ -181,13 +181,19 @@ class WBMCPServer:
         *,
         proxy: Optional[str] = None,
         proxy_change_url: Optional[str] = None,
+        mobileproxy_key: Optional[str] = None,
         cookies: Optional[str] = None,
         wbaas_token: Optional[str] = None,
         tracker_db: Optional[str] = None,
         client: Optional[WBClient] = None,
     ) -> None:
+        from wb_parser.config import resolve_proxy_change_url
+
         self.proxy = proxy or os.environ.get("WB_PROXY")
-        self.proxy_change_url = proxy_change_url or os.environ.get("WB_PROXY_CHANGE_URL")
+        self.proxy_change_url = resolve_proxy_change_url(
+            proxy_change_url or os.environ.get("WB_PROXY_CHANGE_URL"),
+            mobileproxy_key or os.environ.get("WB_MOBILEPROXY_KEY"),
+        )
         self.cookies = cookies or os.environ.get("WB_COOKIES")
         self.wbaas_token = wbaas_token or os.environ.get("WB_WBAAS_TOKEN")
         self.tracker_db = tracker_db or os.environ.get("WB_TRACKER_DB") or "wb_prices.db"
