@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wb-sdk-pro"
-version = "2.5.0"
-description = "All-in-One Wildberries Sync/Async SDK, Interactive Telegram Bot (WBTelegramBot), 13-command CLI, 9-tool MCP Server, Free/Paid AI (g4f, Ollama, OpenAI, DeepSeek, OpenRouter) & Desktop GUI ([gui] / Windows .exe): CDN cards, feedbacks1/2 sharding, WB Wallet pricing, Rank Tracker, Smart Reviews & Excel reports"
+version = "2.5.1"
+description = "Универсальный парсер Wildberries и Python SDK (Sync/Async): интерактивный Telegram-бот (WBTelegramBot), 13 команд CLI, 9 инструментов MCP, бесплатный/платный AI (g4f, Ollama, OpenAI, DeepSeek, OpenRouter) и 7-вкладочный Desktop GUI (Windows .exe) — CDN-карточки, feedbacks1/2, WB Кошелёк, позиции, отзывы и Excel"
 readme = "README.md"
 authors = [
     { name = "eminsk", email = "M_N_Nik@yahoo.com" },
