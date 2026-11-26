@@ -19,6 +19,8 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Set up Python 3.12
         run: uv python install 3.12
@@ -33,4 +35,8 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          uvx twine upload dist/* --skip-existing
+          if [ -n "$TWINE_PASSWORD" ]; then
+            uvx twine upload dist/* --skip-existing
+          else
+            echo "PYPI_API_TOKEN secret not set; skipping automated CI upload."
+          fi
