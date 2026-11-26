@@ -16,7 +16,7 @@ Supports CPython 3.8-3.16, PyPy 3.8-3.12, and Free-Threaded No-GIL (3.13t-3.16t)
 
 from __future__ import annotations
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"
 
 from wb_parser.ai import (
     AI_PROVIDER_PRESETS,
@@ -52,7 +52,15 @@ from wb_parser.exceptions import (
     WBRateLimitError,
     WBValidationError,
 )
-from wb_parser.export import rank_results_to_excel, to_csv, to_dataframe, to_excel, to_json, to_jsonl
+from wb_parser.export import (
+    rank_results_to_excel,
+    reviews_to_excel,
+    to_csv,
+    to_dataframe,
+    to_excel,
+    to_json,
+    to_jsonl,
+)
 from wb_parser.models import (
     Feedback,
     FeedbackInfo,
@@ -74,7 +82,15 @@ from wb_parser.shards import (
     extract_seller_id,
     feedback_url,
 )
-from wb_parser.telegram import TelegramNotifier
+from wb_parser.telegram import (
+    BotInstanceLock,
+    TelegramNotifier,
+    WBTelegramBot,
+    mask_proxy_url,
+    normalize_tg_proxy,
+    render_progress_bar,
+    render_telegram_progress_bar,
+)
 from wb_parser.tracker import WBPriceTracker
 from wb_parser.wallet import WBWalletCalculator, WalletPriceResult, WalletSettings
 
@@ -88,6 +104,7 @@ __all__ = [
     "AsyncWBClient",
     "BasketRoute",
     "BasketRouter",
+    "BotInstanceLock",
     "DEFAULT_BASKET_RANGES",
     "DEFAULT_DEST",
     "DEST_CODES",
@@ -118,6 +135,7 @@ __all__ = [
     "WBRankTracker",
     "WBRateLimitError",
     "WBSearchPage",
+    "WBTelegramBot",
     "WBValidationError",
     "WBWalletCalculator",
     "WalletPriceResult",
@@ -132,9 +150,14 @@ __all__ = [
     "generate_completion",
     "is_g4f_available",
     "list_ai_providers",
+    "mask_proxy_url",
+    "normalize_tg_proxy",
     "quick_scan_ai_providers",
     "rank_results_to_excel",
+    "render_progress_bar",
+    "render_telegram_progress_bar",
     "resolve_proxy_change_url",
+    "reviews_to_excel",
     "test_ai_provider",
     "to_csv",
     "to_dataframe",

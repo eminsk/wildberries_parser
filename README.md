@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">WB SDK Pro (`wb-sdk-pro`)</h1>
 <p align="center">
-  <b>All-in-One Wildberries Suite: Sync/Async SDK + Standalone Windows .exe GUI + CDN Engine + WB Wallet + Rank Tracker + Smart Reviews + Free/Paid AI (g4f / Ollama / OpenAI / DeepSeek / OpenRouter) + 12 CLI + 9 MCP Tools</b>
+  <b>All-in-One Wildberries Suite: Sync/Async SDK + Interactive Telegram Bot (`WBTelegramBot`) + Standalone Windows .exe GUI + CDN Engine + WB Wallet + Rank Tracker + Smart Reviews + Free/Paid AI (`g4f` / Ollama / OpenAI / DeepSeek / OpenRouter) + 13 CLI + 9 MCP Tools</b>
 </p>
 
 <p align="center">
@@ -11,18 +11,18 @@
   <a href="https://github.com/eminsk/wildberries_parser/blob/master/README_RU.md">🇷🇺 Документация на русском</a>
 </p>
 
-[![Release](https://img.shields.io/badge/release-v2.4.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.4.0)
+[![Release](https://img.shields.io/badge/release-v2.5.0-7c3aed.svg?style=flat&logo=github)](https://github.com/eminsk/wildberries_parser/releases/tag/v2.5.0)
 [![Free 3h Proxy Trial](https://img.shields.io/badge/Mobile_Proxy-Free_3h_Trial_(No_VPN)-00C853?style=flat&logo=cloudflare&logoColor=white)](https://mobileproxy.rent/user.html?free&p=279117)
 [![PyPI Version](https://img.shields.io/pypi/v/wb-sdk-pro.svg?style=flat&logo=pypi&color=blue)](https://pypi.org/project/wb-sdk-pro/)
 [![Python Versions](https://img.shields.io/badge/python-3.8%20--%203.16+%20%7C%20PyPy%20%7C%20No--GIL-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![uv Powered](https://img.shields.io/badge/uv-package%20manager-DE5FE9.svg?style=flat)](https://github.com/astral-sh/uv)
-[![Tests](https://img.shields.io/badge/pytest-35%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
+[![Tests](https://img.shields.io/badge/pytest-40%20passed%20%C3%97%2018%20runtimes-2ea44f.svg?style=flat&logo=pytest&logoColor=white)](https://github.com/eminsk/wildberries_parser/tree/master/tests)
 [![Desktop GUI](https://img.shields.io/badge/Desktop%20GUI-Windows%20.exe%20%7C%207%20Tabs-blueviolet.svg?style=flat)](https://github.com/eminsk/wildberries_parser#desktop-gui)
 [![MCP Server](https://img.shields.io/badge/MCP-9%20Tools%20JSON--RPC%202.0-00C853.svg?style=flat)](https://github.com/eminsk/wildberries_parser#mcp-server-for-ai-agents)
 [![Telegram Channel](https://img.shields.io/badge/Telegram_Channel-@avito__sdk__pro-26A5E4?style=flat&logo=telegram&logoColor=white)](https://t.me/avito_sdk_pro)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
-> **Unified 4-in-1 Wildberries Architecture** combining `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` + **`testg4f` Hybrid Free/Paid AI Engine** into one pure-Python Sync/Async SDK, 12-command CLI (`wb-parser` / `wb-sdk`), 9-tool MCP Server (`wb-mcp`), 7-tab Desktop GUI (`wb-gui`), and **Standalone Windows `x64` `.exe` App** (`WBSDK_Pro.exe`).
+> **Unified 4-in-1 Wildberries Architecture** combining `wildberries_parser` (with drop-in `ParseWB`, `Item`, `Items`, `Feedback` compatibility) + `wb_rank` + `wb_smart_review` + **`testg4f` Hybrid Free/Paid AI Engine** into one pure-Python Sync/Async SDK, **Interactive Telegram Bot (`WBTelegramBot`)**, 13-command CLI (`wb-parser` / `wb-sdk`), 9-tool MCP Server (`wb-mcp`), 7-tab Desktop GUI (`wb-gui`), and **Standalone Windows `x64` `.exe` App** (`WBSDK_Pro.exe`).
 
 > ### 🤝 Community, Mobile Proxies & Support
 > - 🌐 **Getting 498 (WBAAS) / 429 on search & catalogs?** Claim a [3-Hour Free Mobile Proxy Trial](https://mobileproxy.rent/user.html?free&p=279117) ([MobileProxy Portal](https://mobileproxy.rent/?p=279117) — works in Russia without VPN).
@@ -59,8 +59,8 @@ Core SDK, CLI, and MCP Server install cleanly across **18 Python runtimes** usin
 | **WB Wallet Pricing** (`wb_parser.wallet`) | Calculating real buyer checkout price with `WB Кошелёк` / `ВБ Клуб` | Fetches live `default-payment.json` + `settings-front.json` thresholds (`wlt1DiscountDisplayMaxPrice`, `pricesDeltaToShowSale`) with `geobasket` mirror, floors prices via `ROUND_FLOOR` |
 | **Search Rank Tracker** (`wb_parser.rank`) | Monitoring keyword positions across WB search (`wb_rank`) | Scans pages `1..N` (`popular`, `pricedown`, `priceup`, `rate`, `newly`), computes global rank + page slot + SQLite `rank_delta` (`▲`/`▼`), batch checks (`check_batch`), styled Excel export |
 | **Smart Review & Free/Paid AI Engine** (`wb_parser.reviews`, `wb_parser.ai`) | Extracting buyer pros, cons & size fit with zero-key Free OR Paid LLMs (`wb_smart_review` + `testg4f`) | Filters by `nm_id` (fallback `root_id`), offline clustering + **Free** (`g4f` auto-fallback, `Ollama`, `LM Studio`), **Hybrid** (`OpenRouter` `:free`/paid, `Groq`, `Gemini`), **Paid** (`OpenAI`, `DeepSeek`, `ProxyAPI`) + provider health checks (`test_ai_provider`, `quick_scan`) |
-| **Price Tracker, Config & Alerts** (`tracker`, `config`, `export`, `telegram`) | Price drops, multi-format reports & Telegram monitoring | Thread-safe SQLite `wb_latest_prices` / `wb_price_history`, `.xlsx` (hyperlinks & drop highlight), UTF-8 BOM `.csv`, `.json`, `.jsonl`, `pandas.DataFrame` (`[dataframe]`), `.json`/`.toml` `WBConfig`, isolated Telegram proxy |
-| **Desktop GUI (`wb-gui`)** | Visual control center (`[gui]` extra) | Dark `CustomTkinter` UI with 7 tabs (Parser, Catalog Feed, Rank Tracker, Smart Reviews with Free/Paid AI selector & live ⚡ check, Proxy & Session, Telegram, Logs) and `storage/gui_config.json` persistence |
+| **Price Tracker, Config & Telegram Bot** (`tracker`, `config`, `export`, `telegram`) | Price drops, Excel reports & Interactive Telegram Bot (`WBTelegramBot`) | Thread-safe SQLite `wb_latest_prices` / `wb_price_history`, `.xlsx` (products, `reviews_to_excel`, `rank_results_to_excel`, drop highlight), UTF-8 BOM `.csv`, `.json`, `.jsonl`, `pandas.DataFrame` (`[dataframe]`), `.json`/`.toml` `WBConfig`, `TelegramNotifier` + interactive **`WBTelegramBot`** (`/search`, `/drops`, `/wallet`, `/rank`, `/reviews`, live progress bars & auto Excel uploads via decoupled Telegram proxy) |
+| **Desktop GUI (`wb-gui`)** | Visual control center (`[gui]` extra) | Dark `CustomTkinter` UI with 7 tabs (Parser, Catalog Feed + `✈ Excel → TG`, Rank Tracker + `✈ Excel → TG`, Smart Reviews with Free/Paid AI & `✈ В TG`, Proxy & Session, Telegram + Bot Start/Stop, Logs) |
 | **Native MCP Server (`wb-mcp`)** | Giving AI agents live Wildberries market intelligence | 9 JSON-RPC 2.0 tools (`2025-11-25` / `2025-06-18` / `2024-11-05`) including `wb_ai_providers`, `structuredContent`, and env vars (`WB_PROXY`, `WB_TRACKER_DB`, `WB_AI_MODE`, `WB_AI_PROVIDER`) |
 
 > **Note on WB anti-bot (WBAAS 498/403):** Direct CDN endpoints (`wbbasket.ru` `card.json`, `upstreams`, `.webp`, `price-history.json`, `feedbacks1/2.wb.ru`, and Wallet configs) work directly without proxies or cookies. Gateway search, seller catalogs, and live `__internal/u-card` checkout prices may require an RU residential/mobile proxy, `cookies`, or `x-wbaas-token`.
@@ -72,7 +72,7 @@ Core SDK, CLI, and MCP Server install cleanly across **18 Python runtimes** usin
 ### PyPI (`uv` / `pip`)
 
 ```bash
-# Core SDK, 12-command CLI (wb-parser / wb-sdk), and 9-tool MCP server (wb-mcp)
+# Core SDK, 13-command CLI (wb-parser / wb-sdk), and 9-tool MCP server (wb-mcp)
 uv add wb-sdk-pro
 
 # Run Desktop GUI directly without installing into your project (requires [gui] extra)
@@ -231,16 +231,27 @@ Supported built-in AI presets & environment variables:
 | `deepseek` | **Paid** | `deepseek-chat` | `DEEPSEEK_API_KEY` | `https://api.deepseek.com/v1` |
 | `proxyapi` | **Paid** (RU) | `gpt-4o-mini` | `PROXYAPI_API_KEY` | `https://api.proxyapi.ru/openai/v1` |
 
-### 6. Config Files (`JSON` / `TOML`), Telegram Alerts & Legacy `ParseWB`
+### 6. Config Files (`JSON` / `TOML`), Interactive Telegram Bot (`WBTelegramBot`) & Legacy `ParseWB`
 
 ```python
-from wb_parser import ParseWB, TelegramNotifier, WBConfig, WBClient
+from wb_parser import ParseWB, TelegramNotifier, WBConfig, WBClient, WBTelegramBot
 
 cfg = WBConfig.from_file("wb.toml")  # or wb.json
 notifier = TelegramNotifier(bot_token="...", chat_id="...", proxy="socks5://127.0.0.1:1080")
 with WBClient(dest=cfg.dest, tracker_db=cfg.tracker_db) as wb:
     item = wb.get_product(141217830)
     notifier.send_product(item)
+
+# Interactive polling bot (/start, /search, /drops, /wallet, /rank, /reviews + live Excel uploads):
+bot = WBTelegramBot(
+    bot_token="123456789:AAF...",
+    proxy="http://login:password@proxy-domain.space:port",
+    mobileproxy_key="YOUR_MOBILEPROXY_KEY",
+    tg_proxy="socks5://127.0.0.1:1080",
+    workers=2,
+    limit=50,
+)
+# bot.run_polling()  # or run: uv run python run_telegram_bot.py / uv run wb-parser bot --tg-token ...
 
 # Backward-compatible Duff89 API:
 ParseWB("https://www.wildberries.ru/seller/626520", output_path="seller.xlsx").parse()
@@ -266,11 +277,11 @@ uv run python run_gui.py
 ```
 
 1. **🔍 Парсер**: Scrape product links, `nm_id` articles, `/seller/...` stores, or search queries with price/discount/rating/whitelist/blacklist keyword filters and 24/7 loop monitoring.
-2. **📦 Каталог товаров**: Live cards displaying price, `💳 WB Wallet` price, discount badge, price drop alert (`📉`), clickable *"Открыть на WB ↗"*, and 1-click export to **Excel `.xlsx`**, **CSV**, and **JSON**.
-3. **📈 Позиции (Rank)**: Paste `nm_id : keyword` pairs, choose sort order (`popular`, `pricedown`, `priceup`, `rate`, `newly`), scan pages `1..N`, see position movement (`▲`/`▼`), and export rank reports to Excel.
-4. **💬 Умные отзывы + AI**: Enter any WB URL or `nm_id` to extract buyer reviews, rating histogram, size fit stats, and **✅ Pros** & **❌ Cons** using Offline mode, **Free zero-key AI (`g4f` Auto / `Yqcloud` / `Airforce` / ...)**, **Local (`Ollama` / `LM Studio`)**, or **Paid APIs (`OpenAI` / `DeepSeek` / `OpenRouter` / `ProxyAPI` / `Groq` / `Gemini`)** with a built-in **`⚡ Проверить AI`** health-check button.
+2. **📦 Каталог товаров**: Live cards displaying price, `💳 WB Wallet` price, discount badge, price drop alert (`📉`), clickable *"Открыть на WB ↗"*, and 1-click export to **Excel `.xlsx`**, **✈ Excel → TG**, **CSV**, and **JSON**.
+3. **📈 Позиции (Rank)**: Paste `nm_id : keyword` pairs, choose sort order (`popular`, `pricedown`, `priceup`, `rate`, `newly`), scan pages `1..N`, see position movement (`▲`/`▼`), and export rank reports to **Excel `.xlsx`** or **✈ Позиции → TG**.
+4. **💬 Умные отзывы + AI**: Enter any WB URL or `nm_id` to extract buyer reviews, rating histogram, size fit stats, and **✅ Pros** & **❌ Cons** using Offline mode, **Free zero-key AI (`g4f` Auto / `Yqcloud` / `Airforce` / ...)**, **Local (`Ollama` / `LM Studio`)**, or **Paid APIs (`OpenAI` / `DeepSeek` / `OpenRouter` / `ProxyAPI` / `Groq` / `Gemini`)** with **`⚡ Проверить AI`**, **📊 Excel (`reviews_to_excel`)**, and **✈ В TG** buttons.
 5. **🌐 Прокси и Сессия**: Choose delivery region (`dest`), configure HTTP/SOCKS5 proxy, **MobileProxy.rent 4G rotation URL/key** (with 1-click 3h Free Trial button), cookies/`x_wbaas_token`, and ping CDN + live WB Wallet discount rates in 1 click.
-6. **✈️ Telegram & 📋 Журнал**: Forward product cards & alerts via a decoupled Telegram proxy and inspect live logs (all settings persist in `storage/gui_config.json`, plus **`☕ Донат`** support dialog in the top bar).
+6. **✈️ Telegram & 📋 Журнал**: Isolated Telegram proxy, test alert sender, **1-click interactive `🤖 Запустить Telegram-бота`** controller (`WBTelegramBot` polling), live execution logs (`storage/gui_config.json`), and **`☕ Донат`** support dialog in the top bar.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/eminsk/wildberries_parser/master/docs/images/gui_catalog.png" alt="WB SDK Pro Desktop GUI — Catalog Feed & WB Wallet Pricing" width="820">
@@ -303,7 +314,7 @@ Direct `wbbasket.ru` CDN cards and `feedbacks1/2` reviews work **without proxies
 
 ---
 
-## 💻 CLI Commands (`wb-parser` / `wb-sdk` — 12 Subcommands)
+## 💻 CLI Commands (`wb-parser` / `wb-sdk` — 13 Subcommands)
 
 All data commands support `--dest`, `--proxy`, `--proxy-change-url`, `--cookies`, `--wbaas-token`, and `--db`:
 
@@ -348,6 +359,11 @@ uv run wb-parser mcp
 
 # 12. Launch CustomTkinter Desktop GUI (requires [gui] extra)
 uv run wb-parser gui
+
+# 13. Start Interactive Telegram Bot Controller (/start, /search, /drops, /wallet, /rank, /reviews)
+uv run wb-parser bot --tg-token "123:AAF..." --mobileproxy-key "KEY" --tg-proxy "socks5://127.0.0.1:1080"
+# or send search Excel report directly to Telegram:
+uv run wb-parser search "кроссовки" -o search.xlsx --tg-token "123:AAF..." --tg-chat-id "999"
 ```
 
 ---
@@ -384,7 +400,7 @@ Available tools: `wb_get_card`, `wb_get_feedbacks`, `wb_search`, `wb_get_seller_
 uv run pytest
 ```
 
-**35 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, MobileProxy key resolution, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama/`OLLAMA_BASE_URL`) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (12 commands), GUI config/assets/missing-extra handling, and No-GIL thread safety.
+**40 tests passing** across **18 Python runtimes** in CI on **Linux, Windows & macOS** (CPython 3.8–3.16, Free-Threaded 3.13t–3.16t, PyPy 3.8–3.12), covering shard math, models, TOML/JSON config, sync/async clients, MobileProxy key resolution, WB Wallet rounding & thresholds, multi-page rank tracking & history deltas, smart review color filtering & pros/cons extraction, Free (`g4f`/Ollama/`OLLAMA_BASE_URL`) & Paid/Hybrid AI routing, health-check diagnostics, Excel/CSV exports (`to_excel`, `reviews_to_excel`, `rank_results_to_excel`), interactive `WBTelegramBot` commands/callbacks/progress bars, MCP tools (9 tools + `WB_TRACKER_DB`), CLI (13 commands), GUI config/assets/missing-extra handling, and No-GIL thread safety.
 
 ## ☕ Support & Donations
 

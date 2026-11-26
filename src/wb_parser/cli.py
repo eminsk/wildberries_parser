@@ -13,15 +13,16 @@ from typing import List, Optional
 from wb_parser import __version__
 from wb_parser.client import WBClient, filter_products
 from wb_parser.config import DEFAULT_DEST, DEST_CODES, DOCS_URL, ISSUES_URL, TELEGRAM_CHANNEL_URL
-from wb_parser.export import rank_results_to_excel, to_csv, to_excel, to_json, to_jsonl
+from wb_parser.export import rank_results_to_excel, reviews_to_excel, to_csv, to_excel, to_json, to_jsonl
 from wb_parser.models import WBProduct
 from wb_parser.shards import calculate_feedback_shard, extract_nm_id
+from wb_parser.telegram import TelegramNotifier, WBTelegramBot
 from wb_parser.tracker import WBPriceTracker
 
 
-def _export_results(products: List[WBProduct], output_path: Optional[str]) -> None:
+def _export_results(products: List[WBProduct], output_path: Optional[str]) -> Optional[Path]:
     if not output_path:
-        return
+        return None
     path = Path(output_path)
     ext = path.suffix.lower()
     if ext == ".xlsx":
@@ -33,6 +34,25 @@ def _export_results(products: List[WBProduct], output_path: Optional[str]) -> No
     else:
         to_json(products, path)
     print(f"[+] Exported {len(products)} item(s) -> {path}")
+    return path
+
+
+def _add_tg_args(subparser: argparse.ArgumentParser) -> None:
+    subparser.add_argument("--tg-token", default=None, help="Optional Telegram Bot Token to send results/Excel")
+    subparser.add_argument("--tg-chat-id", default=None, help="Optional Telegram Chat or Channel ID")
+    subparser.add_argument("--tg-proxy", default=None, help="Optional separate SOCKS5/HTTP proxy for Telegram API")
+
+
+def _notify_cli_export(args: argparse.Namespace, products: List[WBProduct], exported: Optional[Path], title: str) -> None:
+    token = getattr(args, "tg_token", None)
+    chat_id = getattr(args, "tg_chat_id", None)
+    if not (token and chat_id):
+        return
+    notifier = TelegramNotifier(token, chat_id, proxy=getattr(args, "tg_proxy", None))
+    if exported and exported.exists():
+        notifier.send_excel(exported, caption=f"📊 {title} ({len(products)} шт.)")
+    elif products:
+        notifier.notify_many(products[:5])
 
 
 def _print_products_table(products: List[WBProduct]) -> None:
@@ -234,6 +254,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     seller_p.add_argument("--no-feedbacks", action="store_true", help="Skip feedback fetching")
     seller_p.add_argument("-o", "--output", help="Save output (.xlsx, .csv, .json, .jsonl)")
     _add_network_args(seller_p)
+    _add_tg_args(seller_p)
 
     # 4. search
     search_p = subparsers.add_parser("search", help="Search Wildberries catalog")
@@ -248,6 +269,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     search_p.add_argument("--with-feedbacks", action="store_true", help="Fetch sharded reviews")
     search_p.add_argument("-o", "--output", help="Save output (.xlsx, .csv, .json, .jsonl)")
     _add_network_args(search_p)
+    _add_tg_args(search_p)
 
     # 5. drops
     drops_p = subparsers.add_parser("drops", help="Show tracked price drops from SQLite")
@@ -316,6 +338,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 12. gui
     subparsers.add_parser("gui", help="Launch Dark-Themed 7-Tab WB SDK Pro Desktop GUI (requires [gui] extra)")
 
+    # 13. bot
+    bot_p = subparsers.add_parser(
+        "bot",
+        help="Start interactive WBTelegramBot with live progress bars, /drops, /wallet, /rank, /reviews & Excel export",
+    )
+    bot_p.add_argument("--tg-token", default=None, help="Telegram Bot Token (or set WB_TG_TOKEN env var)")
+    bot_p.add_argument("--tg-proxy", default=None, help="Optional SOCKS5/HTTP proxy for Telegram API (or WB_TG_PROXY)")
+    bot_p.add_argument("--channel-id", default=None, help="Optional channel/chat ID for forwarding reports")
+    bot_p.add_argument("--workers", type=int, default=2, help="Parallel worker threads (1..16)")
+    bot_p.add_argument("-n", "--limit", type=int, default=50, help="Default max items per search (1..5000)")
+    bot_p.add_argument("-p", "--pages", type=int, default=2, help="Default search pages")
+    bot_p.add_argument("--no-cdn", action="store_true", help="Disable per-item CDN card.json enrichment")
+    bot_p.add_argument("--no-feedbacks", action="store_true", help="Skip sharded feedbacks enrichment")
+    _add_network_args(bot_p)
+
     args = parser.parse_args(argv)
     if not args.command:
         parser.print_help()
@@ -324,6 +361,32 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.command == "gui":
         from wb_parser.gui import main_gui
         return main_gui()
+
+    if args.command == "bot":
+        import os
+
+        token = (args.tg_token or os.getenv("WB_TG_TOKEN", "")).strip()
+        if not token:
+            print("Error: --tg-token or WB_TG_TOKEN environment variable is required.", file=sys.stderr)
+            return 1
+        dest_val = DEST_CODES.get(args.dest, args.dest)
+        bot = WBTelegramBot(
+            bot_token=token,
+            proxy=args.proxy,
+            proxy_change_url=args.proxy_change_url,
+            mobileproxy_key=args.mobileproxy_key,
+            tg_proxy=args.tg_proxy or os.getenv("WB_TG_PROXY"),
+            channel_id=args.channel_id or os.getenv("WB_TG_CHANNEL"),
+            dest=int(dest_val),
+            workers=args.workers,
+            limit=args.limit,
+            max_pages=args.pages,
+            enrich_cdn=not args.no_cdn,
+            with_feedbacks=not args.no_feedbacks,
+            tracker_db=args.db or "wb_prices.db",
+        )
+        bot.run_polling()
+        return 0
 
     if args.command == "mcp":
         from wb_parser.mcp_server import WBMCPServer
@@ -449,7 +512,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 with_feedbacks=not args.no_feedbacks,
             )
             _print_products_table(products)
-            _export_results(products, args.output)
+            exported = _export_results(products, args.output)
+            _notify_cli_export(args, products, exported, f"WB Продавец {args.target}")
             return 0
 
         if args.command == "search":
@@ -468,7 +532,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                 min_rating=args.min_rating,
             )
             _print_products_table(products)
-            _export_results(products, args.output)
+            exported = _export_results(products, args.output)
+            _notify_cli_export(args, products, exported, f"WB Поиск: {args.query}")
             return 0
 
     return 0

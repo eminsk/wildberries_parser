@@ -48,12 +48,12 @@ from wb_parser.config import (
     resolve_proxy_change_url,
 )
 from wb_parser.exceptions import WBAntiBotError
-from wb_parser.export import rank_results_to_excel, to_csv, to_excel, to_json
+from wb_parser.export import rank_results_to_excel, reviews_to_excel, to_csv, to_excel, to_json
 from wb_parser.http import CURL_CFFI_AVAILABLE
 from wb_parser.models import WBProduct
 from wb_parser.rank import RankResult, WBRankTracker
 from wb_parser.reviews import ReviewSummary, SmartReviewAnalyzer
-from wb_parser.telegram import TelegramNotifier
+from wb_parser.telegram import TelegramNotifier, WBTelegramBot
 
 logger = logging.getLogger("wb_parser.gui")
 
@@ -214,6 +214,9 @@ class WBGUIApp:
         self.seen_ids: Set[int] = set()
         self.discovered_items: List[WBProduct] = []
         self.rank_results: List[RankResult] = []
+        self.last_review_summary: Optional[ReviewSummary] = None
+        self._tg_bot: Optional[WBTelegramBot] = None
+        self._tg_bot_thread: Optional[threading.Thread] = None
         self.stats_found = 0
         self.stats_discounts = 0
         self.stats_checks = 0
@@ -489,12 +492,22 @@ class WBGUIApp:
         ctk.CTkButton(
             bar,
             text="📊 Экспорт Excel (.xlsx)",
-            width=170,
+            width=165,
             fg_color="#16a34a",
             hover_color="#15803d",
             font=ctk.CTkFont(size=12, weight="bold"),
             command=self._export_excel,
         ).pack(side="left", padx=8, pady=8)
+
+        ctk.CTkButton(
+            bar,
+            text="✈ Excel → TG",
+            width=125,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._send_catalog_excel_tg,
+        ).pack(side="left", padx=4, pady=8)
 
         ctk.CTkButton(
             bar,
@@ -581,6 +594,15 @@ class WBGUIApp:
             hover_color="#15803d",
             command=self._export_rank_excel,
         ).pack(fill="x", padx=12, pady=4)
+
+        ctk.CTkButton(
+            left,
+            text="✈ Позиции (.xlsx) → TG",
+            height=34,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            command=self._send_rank_excel_tg,
+        ).pack(fill="x", padx=12, pady=(2, 4))
 
         ctk.CTkLabel(
             left,
@@ -698,8 +720,16 @@ class WBGUIApp:
             row3, "API Key (нужен только для платных — для Free g4f / Ollama оставьте пустым)", "sk-... или пусто для Free", expand=True
         )
         self.entry_review_ai_url = self._make_labeled_entry(
-            row3, "API Base URL (автоподстановка для пресетов)", "https://api.openai.com/v1 или http://localhost:11434/v1", width=290
+            row3, "API Base URL (автоподстановка для пресетов)", "https://api.openai.com/v1 или http://localhost:11434/v1", width=270
         )
+        ctk.CTkButton(
+            row3, text="📊 Excel", width=90, height=30, fg_color="#16a34a", hover_color="#15803d",
+            command=self._export_reviews_excel,
+        ).pack(side="right", padx=(6, 0), pady=(14, 0))
+        ctk.CTkButton(
+            row3, text="✈ В TG", width=85, height=30, fg_color="#0284c7", hover_color="#0369a1",
+            command=self._send_reviews_tg,
+        ).pack(side="right", padx=(6, 0), pady=(14, 0))
 
         self.lbl_review_ai_status = ctk.CTkLabel(
             top,
@@ -865,16 +895,63 @@ class WBGUIApp:
 
         self.var_tg_notify = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(frame, text="Отправлять новые найденные товары в Telegram", variable=self.var_tg_notify).pack(
-            anchor="w", padx=16, pady=12
+            anchor="w", padx=16, pady=10
         )
 
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(fill="x", padx=16, pady=(2, 12))
         ctk.CTkButton(
-            frame,
+            btn_row,
             text="✈ Отправить тестовое сообщение",
             width=240,
             fg_color="#0284c7",
             command=self._test_telegram,
-        ).pack(anchor="w", padx=16, pady=6)
+        ).pack(side="left")
+        self._make_link_button(
+            btn_row,
+            text="📢 Канал @avito_sdk_pro",
+            url=TELEGRAM_CHANNEL_URL,
+            width=190,
+            fg_color="#1e293b",
+            hover_color="#334155",
+        ).pack(side="left", padx=10)
+
+        bot_box = ctk.CTkFrame(frame, fg_color="#111c33", corner_radius=8)
+        bot_box.pack(fill="x", padx=16, pady=(8, 12))
+        ctk.CTkLabel(
+            bot_box,
+            text="🤖 Интерактивный Telegram-бот (WBTelegramBot Polling + живой прогресс-бар + Excel .xlsx в чат):",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="#38bdf8",
+        ).pack(anchor="w", padx=14, pady=(12, 4))
+        ctk.CTkLabel(
+            bot_box,
+            text="Команды: /start, /search <запрос или URL>, /drops, /wallet <цена>, /rank <артикул> <запрос>, /reviews <артикул>, /workers, /limit, /proxy",
+            font=ctk.CTkFont(size=11),
+            text_color="#94a3b8",
+            wraplength=980,
+            justify="left",
+        ).pack(anchor="w", padx=14, pady=(0, 8))
+
+        bot_ctrl = ctk.CTkFrame(bot_box, fg_color="transparent")
+        bot_ctrl.pack(fill="x", padx=14, pady=(0, 12))
+        self.btn_tg_bot = ctk.CTkButton(
+            bot_ctrl,
+            text="🤖 Запустить Telegram-бота",
+            width=220,
+            fg_color="#16a34a",
+            hover_color="#15803d",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._toggle_telegram_bot,
+        )
+        self.btn_tg_bot.pack(side="left")
+        self.lbl_tg_bot_status = ctk.CTkLabel(
+            bot_ctrl,
+            text="● Остановлен",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#94a3b8",
+        )
+        self.lbl_tg_bot_status.pack(side="left", padx=14)
 
     def _build_logs_tab(self) -> None:
         self.txt_logs = ctk.CTkTextbox(self.tab_logs, font=ctk.CTkFont(family="Consolas", size=12), fg_color="#0f172a")
@@ -1337,6 +1414,7 @@ class WBGUIApp:
         threading.Thread(target=worker, daemon=True).start()
 
     def _render_review_summary(self, s: ReviewSummary) -> None:
+        self.last_review_summary = s
         fit_str = ", ".join(f"{k}: {v}" for k, v in s.size_fit.items()) if s.size_fit else "н/д"
         scope = "цвет nm_id" if s.filtered_by_nm else "вся карточка root_id"
         self.lbl_review_kpi.configure(
@@ -1403,6 +1481,141 @@ class WBGUIApp:
         notifier = TelegramNotifier(cfg.tg_token, cfg.tg_chat_id, proxy=cfg.tg_proxy or None)
         ok = notifier.send_message("✅ <b>WB SDK Pro</b>: подключение Telegram настроено успешно!")
         self._log("Тест Telegram: отправлено успешно!" if ok else "[!] Ошибка отправки в Telegram.")
+
+    def _upload_excel_tg(self, filename: str, writer: Any, caption: str, empty_msg: str) -> None:
+        cfg = self._save_ui_to_config()
+        if not cfg.tg_token or not cfg.tg_chat_id:
+            self._log("[!] Заполните Bot Token и Chat ID во вкладке Telegram.")
+            return
+
+        def worker() -> None:
+            try:
+                reports_dir = _get_base_dir() / "storage" / "reports"
+                reports_dir.mkdir(parents=True, exist_ok=True)
+                out_path = reports_dir / filename
+                writer(out_path)
+                ok = TelegramNotifier(cfg.tg_token, cfg.tg_chat_id, proxy=cfg.tg_proxy or None).send_excel(
+                    out_path, caption=caption
+                )
+                self._log(
+                    f"Отправлено в Telegram: {out_path.name}" if ok else "[!] Ошибка загрузки Excel в Telegram."
+                )
+            except Exception as exc:
+                self._log(f"[!] Ошибка отправки Excel в TG: {exc}")
+
+        if empty_msg:
+            threading.Thread(target=worker, daemon=True).start()
+
+    def _send_catalog_excel_tg(self) -> None:
+        if not self.discovered_items:
+            self._log("Нет данных каталога для отправки в Telegram.")
+            return
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        items = list(self.discovered_items)
+        self._upload_excel_tg(
+            f"wb_catalog_{stamp}.xlsx",
+            lambda p: to_excel(items, p),
+            f"📊 WB Каталог Excel ({len(items)} товаров)",
+            "ok",
+        )
+
+    def _send_rank_excel_tg(self) -> None:
+        if not self.rank_results:
+            self._log("Нет результатов позиций для отправки в Telegram.")
+            return
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        res = list(self.rank_results)
+        self._upload_excel_tg(
+            f"wb_rank_{stamp}.xlsx",
+            lambda p: rank_results_to_excel(res, p),
+            f"📈 Позиции WB Excel ({len(res)} проверок)",
+            "ok",
+        )
+
+    def _export_reviews_excel(self) -> None:
+        if not self.last_review_summary or filedialog is None:
+            self._log("Сначала выполните анализ отзывов во вкладке «Умные отзывы».")
+            return
+        path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")])
+        if path:
+            reviews_to_excel(self.last_review_summary, path)
+            self._log(f"Отзывы и AI-саммари сохранены в Excel: {path}")
+
+    def _send_reviews_tg(self) -> None:
+        if not self.last_review_summary:
+            self._log("Сначала проанализируйте отзывы товара.")
+            return
+        cfg = self._save_ui_to_config()
+        if not cfg.tg_token or not cfg.tg_chat_id:
+            self._log("[!] Заполните Bot Token и Chat ID во вкладке Telegram.")
+            return
+        summary = self.last_review_summary
+
+        def worker() -> None:
+            notifier = TelegramNotifier(cfg.tg_token, cfg.tg_chat_id, proxy=cfg.tg_proxy or None)
+            ok_msg = notifier.send_review_summary(summary)
+            reports_dir = _get_base_dir() / "storage" / "reports"
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            xlsx = reviews_to_excel(summary, reports_dir / f"wb_reviews_{summary.nm_id}.xlsx")
+            ok_doc = notifier.send_excel(xlsx, caption=f"💬 Отзывы WB {summary.nm_id} (⭐ {summary.avg_rating})")
+            self._log(
+                "Отзывы и Excel отправлены в Telegram!"
+                if (ok_msg or ok_doc)
+                else "[!] Ошибка отправки отзывов в Telegram."
+            )
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _toggle_telegram_bot(self) -> None:
+        if self._tg_bot is not None and self._tg_bot_thread is not None and self._tg_bot_thread.is_alive():
+            self._tg_bot.stop()
+            self._tg_bot = None
+            self.btn_tg_bot.configure(text="🤖 Запустить Telegram-бота", fg_color="#16a34a", hover_color="#15803d")
+            self.lbl_tg_bot_status.configure(text="● Остановлен", text_color="#94a3b8")
+            self._log("WBTelegramBot остановлен пользователем.")
+            return
+
+        cfg = self._save_ui_to_config()
+        if not cfg.tg_token:
+            self._log("[!] Укажите Telegram Bot Token для запуска интерактивного бота.")
+            return
+
+        bot = WBTelegramBot(
+            bot_token=cfg.tg_token,
+            proxy=cfg.proxy_string or None,
+            proxy_change_url=resolve_proxy_change_url(cfg.proxy_change_url),
+            tg_proxy=cfg.tg_proxy or None,
+            channel_id=cfg.tg_chat_id or None,
+            dest=DEST_CODES.get(cfg.dest_name, DEFAULT_DEST),
+            limit=cfg.limit,
+            max_pages=cfg.max_pages,
+            enrich_cdn=cfg.enrich_cdn,
+            with_feedbacks=cfg.with_feedbacks,
+            tracker_db=str(_get_base_dir() / "storage" / "wb_prices.db"),
+        )
+        self._tg_bot = bot
+        self.btn_tg_bot.configure(text="⏹ Остановить бота", fg_color="#dc2626", hover_color="#b91c1c")
+        self.lbl_tg_bot_status.configure(text="● Polling активен (/start в TG)", text_color="#4ade80")
+        self._log("Запущен интерактивный WBTelegramBot (long-polling)...")
+
+        def run_bot() -> None:
+            try:
+                bot.run_polling(lock=False)
+            except Exception as exc:
+                self._log(f"[!] WBTelegramBot завершился с ошибкой: {exc}")
+            finally:
+                self.root.after(
+                    0,
+                    lambda: (
+                        self.btn_tg_bot.configure(
+                            text="🤖 Запустить Telegram-бота", fg_color="#16a34a", hover_color="#15803d"
+                        ),
+                        self.lbl_tg_bot_status.configure(text="● Остановлен", text_color="#94a3b8"),
+                    ),
+                )
+
+        self._tg_bot_thread = threading.Thread(target=run_bot, daemon=True)
+        self._tg_bot_thread.start()
 
     def _export_excel(self) -> None:
         if not self.discovered_items:
@@ -1500,6 +1713,8 @@ class WBGUIApp:
 
     def _on_close(self) -> None:
         self.stop_event.set()
+        if self._tg_bot is not None:
+            self._tg_bot.stop()
         self._save_ui_to_config()
         self.root.destroy()
 

@@ -284,6 +284,92 @@ def rank_results_to_excel(
     return path
 
 
+def reviews_to_excel(
+    summary: Any,
+    filepath: Union[str, Path],
+    sheet_name: str = "WB Reviews",
+) -> Path:
+    """Export Wildberries review summary (AI pros/cons + size fit + reviews) to `.xlsx`."""
+    path = Path(filepath)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import openpyxl
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = sheet_name[:31]
+
+    headers = [
+        "nm_id",
+        "Оценка",
+        "Плюсы",
+        "Недостатки",
+        "Комментарий",
+        "Соответствие размера",
+        "Цвет",
+        "Размер",
+        "Дата",
+        "Ответ продавца",
+    ]
+    header_fill = PatternFill(start_color="4C1D95", end_color="4C1D95", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    ws.append(headers)
+    for col_idx in range(1, len(headers) + 1):
+        c = ws.cell(row=1, column=col_idx)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = Alignment(horizontal="center", vertical="center")
+    ws.freeze_panes = "A2"
+
+    for r in getattr(summary, "reviews", []) or []:
+        ws.append([
+            getattr(r, "nm_id", 0) or getattr(summary, "nm_id", 0),
+            getattr(r, "rating", 5),
+            _excel_safe(getattr(r, "pros", "")),
+            _excel_safe(getattr(r, "cons", "")),
+            _excel_safe(getattr(r, "text", "")),
+            _excel_safe(getattr(r, "matching_size", "")),
+            _excel_safe(getattr(r, "color", "")),
+            _excel_safe(getattr(r, "size", "")),
+            getattr(r, "created_date", ""),
+            "Да" if getattr(r, "has_answer", False) else "Нет",
+        ])
+
+    for col_idx in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 28 if col_idx in (3, 4, 5) else 15
+
+    ws2 = wb.create_sheet("AI Summary")
+    fit_str = ", ".join(f"{k}: {v}" for k, v in (getattr(summary, "size_fit", {}) or {}).items()) or "н/д"
+    ws2.append(["Параметр", "Значение"])
+    ws2.append(["nm_id", getattr(summary, "nm_id", "")])
+    ws2.append(["root_id", getattr(summary, "root_id", "")])
+    ws2.append(["Товар", _excel_safe(getattr(summary, "product_name", ""))])
+    ws2.append(["Средний рейтинг", getattr(summary, "avg_rating", 0.0)])
+    ws2.append([
+        "Проанализировано / Всего",
+        f"{getattr(summary, 'total_analyzed', 0)} / {getattr(summary, 'total_available', 0)}",
+    ])
+    ws2.append(["Размерная сетка", fit_str])
+    ws2.append(["Режим AI", getattr(summary, "summary_mode", "offline")])
+    ws2.append([])
+    ws2.append(["Главные плюсы", "Главные минусы"])
+
+    pros = list(getattr(summary, "top_pros", []) or [])
+    cons = list(getattr(summary, "top_cons", []) or [])
+    for i in range(max(len(pros), len(cons))):
+        ws2.append([
+            _excel_safe(pros[i]) if i < len(pros) else "",
+            _excel_safe(cons[i]) if i < len(cons) else "",
+        ])
+
+    ws2.column_dimensions["A"].width = 45
+    ws2.column_dimensions["B"].width = 45
+
+    wb.save(str(path))
+    return path
+
+
 def to_dataframe(products: List[WBProduct]) -> Any:
     """Convert products to a `pandas.DataFrame` (requires `pandas` optional dependency)."""
     try:

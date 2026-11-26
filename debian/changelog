@@ -1,3 +1,14 @@
+python-wb-sdk-pro (2.5.0-1) unstable; urgency=medium
+
+  * Add interactive `WBTelegramBot` (`wb_parser.telegram`), standalone `run_telegram_bot.py`,
+    and 13th CLI command `wb-parser bot` with live emoji progress bars, `/search`, `/drops`,
+    `/wallet`, `/rank`, `/reviews`, `/workers`, `/limit`, `/proxy`, batch multi-URL scraping,
+    single-instance lock (`BotInstanceLock`), and decoupled Telegram proxy support.
+  * Add `reviews_to_excel` multi-sheet Excel exporter for Wildberries Smart Reviews and
+    one-click `✈ Excel → TG` & interactive bot Start/Stop controls inside Desktop GUI (`wb-gui`).
+
+ -- eminsk <M_N_Nik@yahoo.com>  Thu, 26 Nov 2026 01:55:00 +0000
+
 python-wb-sdk-pro (2.4.0-1) unstable; urgency=medium
 
   * Standalone Windows x64 Desktop App (PyInstaller `WBSDK_Pro.spec` + `build-windows.yml`),
